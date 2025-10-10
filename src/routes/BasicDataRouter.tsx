@@ -5,12 +5,17 @@ import {
   RouterProvider,
 } from "react-router-dom";
 import Root from "../components/Root";
-import { PublicLayout } from "../components/layout";
-import { HomePage } from "@/pages/Home";
-import { AboutPage } from "@/pages/About";
-import { FeaturesPage } from "@/pages/Features";
-import { ContactPage } from "@/pages/Contact";
-import { NotFound } from "@/pages/NotFound";
+import { PublicLayout, NotFound } from "../components/layout";
+import {
+  HomePage,
+  AboutPage,
+  ContactPage,
+  FeaturesInfoPage,
+  LoginPage,
+  RegisterPage,
+  DashboardPage,
+  CallbackPage,
+} from "@/features";
 
 const BasicDataRouter = () => {
   const router = createBrowserRouter(
@@ -19,9 +24,13 @@ const BasicDataRouter = () => {
         <Route path="/" Component={PublicLayout}>
           <Route path="/" Component={HomePage} />
           <Route path="/about" Component={AboutPage} />
-          <Route path="/features" Component={FeaturesPage} />
+          <Route path="/features" Component={FeaturesInfoPage} />
           <Route path="/contact" Component={ContactPage} />
         </Route>
+        <Route path="/login" Component={LoginPage} />
+        <Route path="/register" Component={RegisterPage} />
+        <Route path="/auth/callback" Component={CallbackPage} />
+        <Route path="/dashboard" Component={DashboardPage} />
         <Route path="*" Component={NotFound} />
       </Route>
     )

@@ -1,9 +1,9 @@
 import { configureStore } from "@reduxjs/toolkit";
 import { rootReducer } from "./reducers";
-//import { useGetByPathQuery } from "../hooks";
+import { apiSlice } from "./api/apiSlice";
 
 export const store = configureStore({
-    reducer: rootReducer,
-    // middleware: (getDefaultMiddleware) =>
-    //     getDefaultMiddleware().concat(useGetByPathQuery.middleware),
+  reducer: rootReducer,
+  middleware: (getDefaultMiddleware) =>
+    getDefaultMiddleware().concat(apiSlice.middleware),
 });

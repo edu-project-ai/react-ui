@@ -1,16 +1,18 @@
-import axios, {
-  AxiosError,
-  type AxiosInstance,
-  type AxiosRequestConfig,
-} from "axios";
+import axios, { type AxiosInstance, type AxiosRequestConfig } from "axios";
+import { getAuthToken } from "./token-provider";
 
 /**
- * Clean HttpClient class without middleware complexity
+ * HttpClient with AWS Cognito Integration
+ *
+ * Architecture:
+ * - NO localStorage for tokens (AWS Cognito manages this)
+ * - Dynamically fetches token before each request
+ * - Low-level service that doesn't know about AWS directly
+ * - Uses token-provider as abstraction layer
  */
 export class HttpClient {
   private axiosInstance: AxiosInstance;
   private signal?: AbortSignal;
-  private accessToken: string = localStorage.getItem("access_token") || "";
 
   /**
    * Create a new HttpClient instance
@@ -32,27 +34,6 @@ export class HttpClient {
     this.axiosInstance = axios.create(axiosConfig);
     this.signal = signal;
     this.initInterceptors();
-  }
-
-  /**
-   * Set the authentication token
-   * @param token Token to set or undefined to clear
-   */
-  public setToken(token?: string): void {
-    this.accessToken = token || "";
-    if (token) {
-      localStorage.setItem("access_token", token);
-    } else {
-      localStorage.removeItem("access_token");
-    }
-  }
-
-  /**
-   * Get the current authentication token
-   * @returns The current token
-   */
-  public getToken(): string {
-    return this.accessToken;
   }
 
   /**
@@ -223,23 +204,23 @@ export class HttpClient {
 
       return response.data;
     } catch (error) {
-      if (axios.isCancel(error)) {
-        console.info("Request was cancelled");
-      } else if (error instanceof AxiosError) {
-        console.error("Request failed:", error.message);
-      }
-
       return Promise.reject(error);
     }
   }
 
   /**
    * Initialize request and response interceptors
+   *
+   * Request Interceptor:
+   * - Dynamically fetches fresh token from AWS Cognito
+   * - No localStorage, no manual token management
+   * - AWS handles refresh automatically
    */
   private initInterceptors() {
     this.axiosInstance.interceptors.request.use(
-      (config) => {
-        const token = this.getToken();
+      async (config) => {
+        // ✅ Dynamically get fresh token from AWS
+        const token = await getAuthToken();
 
         if (token) {
           config.headers["Authorization"] = `Bearer ${token}`;
@@ -248,7 +229,6 @@ export class HttpClient {
         return config;
       },
       (error) => {
-        console.error("Request failed with error", error);
         return Promise.reject(error);
       }
     );
@@ -256,10 +236,6 @@ export class HttpClient {
     this.axiosInstance.interceptors.response.use(
       (response) => response,
       async (error) => {
-        if (error instanceof AxiosError && error.response?.status === 401) {
-          console.error("Unauthorized request");
-        }
-
         return Promise.reject(error);
       }
     );

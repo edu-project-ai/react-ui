@@ -2,6 +2,10 @@ import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { Logo } from "@/components/shared/Logo";
+import { Button } from "@/components/ui/button";
+import { isAuthenticated } from "@/lib/token-provider";
+import { useUser } from "@/features/authorization";
+import type { User } from "@/features/authorization/services/type";
 
 function NavLinks({
   className,
@@ -39,17 +43,48 @@ function NavLinks({
   );
 }
 
-function RightSection() {
+function RightSection({
+  authenticated,
+  user,
+}: {
+  authenticated: boolean;
+  user: User | null;
+}) {
+  if (authenticated && user) {
+    return (
+      <div className="hidden lg:flex items-center gap-3">
+        <Link to="/dashboard">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="flex items-center gap-2 text-foreground"
+          >
+            <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+              <span className="text-sm font-semibold text-primary">
+                {user.displayName?.charAt(0).toUpperCase() ||
+                  user.email?.charAt(0).toUpperCase()}
+              </span>
+            </div>
+            <span className="font-medium">
+              {user.displayName || user.email}
+            </span>
+          </Button>
+        </Link>
+      </div>
+    );
+  }
+
   return (
     <div className="hidden lg:flex items-center gap-3">
-      <Link
-        to="/auth"
-        className={cn(
-          "inline-flex items-center justify-center rounded-md font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 h-8 px-3 text-xs",
-          "hover:bg-accent/10 hover:text-accent-foreground"
-        )}
-      >
-        Login
+      <Link to="/login">
+        <Button variant="ghost" size="sm" className="text-foreground">
+          Sign In
+        </Button>
+      </Link>
+      <Link to="/register">
+        <Button variant="primary" size="sm">
+          Get Started
+        </Button>
       </Link>
     </div>
   );
@@ -107,6 +142,8 @@ function MobileMenuToggle({
 export function Navbar() {
   const [openNav, setOpenNav] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
+  const [authenticated, setAuthenticated] = useState(false);
+  const { user } = useUser();
 
   useEffect(() => {
     const handleScroll = () => setIsScrolled(window.scrollY > 50);
@@ -120,6 +157,14 @@ export function Navbar() {
     };
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  useEffect(() => {
+    const checkAuth = async () => {
+      const result = await isAuthenticated();
+      setAuthenticated(result);
+    };
+    checkAuth();
   }, []);
 
   return (
@@ -146,7 +191,7 @@ export function Navbar() {
           </div>
 
           <div className="flex items-center gap-4">
-            <RightSection />
+            <RightSection authenticated={authenticated} user={user} />
             <MobileMenuToggle openNav={openNav} setOpenNav={setOpenNav} />
           </div>
         </div>
@@ -156,17 +201,41 @@ export function Navbar() {
           <div className="lg:hidden mt-4 pt-4 border-t border-border">
             <div className="flex flex-col gap-4">
               <NavLinks onClick={() => setOpenNav(false)} />
-              <div className="flex items-center justify-between pt-2">
-                <Link
-                  to="/auth"
-                  onClick={() => setOpenNav(false)}
-                  className={cn(
-                    "inline-flex items-center justify-center rounded-md font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 h-8 px-3 text-xs",
-                    "hover:bg-accent/10 hover:text-accent-foreground"
-                  )}
-                >
-                  Login
-                </Link>
+              <div className="flex flex-col gap-2 pt-2">
+                {authenticated && user ? (
+                  <Link to="/dashboard" onClick={() => setOpenNav(false)}>
+                    <Button
+                      variant="primary"
+                      size="sm"
+                      className="w-full flex items-center justify-center gap-2"
+                    >
+                      <div className="w-6 h-6 rounded-full bg-primary-foreground/20 flex items-center justify-center">
+                        <span className="text-xs font-semibold">
+                          {user.displayName?.charAt(0).toUpperCase() ||
+                            user.email?.charAt(0).toUpperCase()}
+                        </span>
+                      </div>
+                      <span>{user.displayName || user.email}</span>
+                    </Button>
+                  </Link>
+                ) : (
+                  <>
+                    <Link to="/login" onClick={() => setOpenNav(false)}>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="w-full text-foreground"
+                      >
+                        Sign In
+                      </Button>
+                    </Link>
+                    <Link to="/register" onClick={() => setOpenNav(false)}>
+                      <Button variant="primary" size="sm" className="w-full">
+                        Get Started
+                      </Button>
+                    </Link>
+                  </>
+                )}
               </div>
             </div>
           </div>
