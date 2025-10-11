@@ -5,3 +5,4 @@ export * from "./PageHero";
 export * from "./FeatureCard";
 export * from "./CTABanner";
 export * from "./Toast";
+export * from "./ThemeToggle";

@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { Logo } from "@/components/shared/Logo";
+import { ThemeToggle } from "@/components/shared/ThemeToggle";
 import { Button } from "@/components/ui/button";
 import { isAuthenticated } from "@/lib/token-provider";
 import { useUser } from "@/features/authorization";
@@ -53,6 +54,7 @@ function RightSection({
   if (authenticated && user) {
     return (
       <div className="hidden lg:flex items-center gap-3">
+        <ThemeToggle />
         <Link to="/dashboard">
           <Button
             variant="ghost"
@@ -76,6 +78,7 @@ function RightSection({
 
   return (
     <div className="hidden lg:flex items-center gap-3">
+      <ThemeToggle />
       <Link to="/login">
         <Button variant="ghost" size="sm" className="text-foreground">
           Sign In
@@ -202,6 +205,10 @@ export function Navbar() {
             <div className="flex flex-col gap-4">
               <NavLinks onClick={() => setOpenNav(false)} />
               <div className="flex flex-col gap-2 pt-2">
+                <div className="flex items-center justify-between pb-2">
+                  <span className="text-sm text-muted-foreground">Theme</span>
+                  <ThemeToggle />
+                </div>
                 {authenticated && user ? (
                   <Link to="/dashboard" onClick={() => setOpenNav(false)}>
                     <Button
