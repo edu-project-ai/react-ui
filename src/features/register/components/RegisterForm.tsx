@@ -23,7 +23,6 @@ export default function RegisterForm() {
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [passwordStrength, setPasswordStrength] = useState(0);
-  const [error, setError] = useState<string | null>(null);
 
   const { control, handleSubmit, watch } = useForm<RegisterFormData>({
     defaultValues: {
@@ -54,7 +53,6 @@ export default function RegisterForm() {
 
   const onSubmit = async (data: RegisterFormData) => {
     setIsLoading(true);
-    setError(null);
 
     const result = await signUp({
       email: data.email,
@@ -82,8 +80,6 @@ export default function RegisterForm() {
           state: { email: data.email },
         });
       }
-    } else {
-      setError(result.error || "Registration failed");
     }
 
     setIsLoading(false);
@@ -114,13 +110,6 @@ export default function RegisterForm() {
 
   return (
     <div className="space-y-5">
-      {/* Error Message */}
-      {error && (
-        <div className="p-3 rounded-md bg-destructive/10 border border-destructive/20">
-          <p className="text-sm text-destructive">{error}</p>
-        </div>
-      )}
-
       {/* Google Sign Up Button */}
       <GoogleButton
         onClick={handleGoogleSignUp}

@@ -1,4 +1,5 @@
 import { useAppDispatch, useAppSelector } from "../../../hooks";
+import { toast } from "react-hot-toast";
 import type {
   User,
   SignUpRequest,
@@ -21,7 +22,6 @@ import {
 export const useUser = () => {
   const dispatch = useAppDispatch();
 
-
   const user = useAppSelector((state) => state.user?.currentUser);
   const loading = useAppSelector((state) => state.user?.loading);
   const error = useAppSelector((state) => state.user?.error);
@@ -38,15 +38,18 @@ export const useUser = () => {
     const result = await dispatch(signUpAction(data));
 
     if (result.meta.requestStatus === "fulfilled") {
+      toast.success("Account created successfully!");
       return {
         success: true,
         data: result.payload,
       };
     }
 
+    const errorMessage = (result.payload as string) || "Sign up failed";
+    toast.error(errorMessage);
     return {
       success: false,
-      error: (result.payload as string) || "Sign up failed",
+      error: errorMessage,
     };
   };
 
@@ -58,15 +61,18 @@ export const useUser = () => {
     const result = await dispatch(confirmSignUpAction({ email, code }));
 
     if (result.meta.requestStatus === "fulfilled") {
+      toast.success("Email confirmed successfully!");
       return {
         success: true,
         data: result.payload,
       };
     }
 
+    const errorMessage = (result.payload as string) || "Confirmation failed";
+    toast.error(errorMessage);
     return {
       success: false,
-      error: (result.payload as string) || "Confirmation failed",
+      error: errorMessage,
     };
   };
 
@@ -78,15 +84,18 @@ export const useUser = () => {
     const result = await dispatch(signInAction(data));
 
     if (result.meta.requestStatus === "fulfilled") {
+      toast.success("Welcome back!");
       return {
         success: true,
         data: result.payload,
       };
     }
 
+    const errorMessage = (result.payload as string) || "Sign in failed";
+    toast.error(errorMessage);
     return {
       success: false,
-      error: (result.payload as string) || "Sign in failed",
+      error: errorMessage,
     };
   };
 
@@ -98,12 +107,15 @@ export const useUser = () => {
     const result = await dispatch(signOutAction());
 
     if (result.meta.requestStatus === "fulfilled") {
+      toast.success("Signed out successfully");
       return { success: true };
     }
 
+    const errorMessage = (result.payload as string) || "Sign out failed";
+    toast.error(errorMessage);
     return {
       success: false,
-      error: (result.payload as string) || "Sign out failed",
+      error: errorMessage,
     };
   };
 
@@ -135,15 +147,19 @@ export const useUser = () => {
     const result = await dispatch(updateUserProfile(data));
 
     if (result.meta.requestStatus === "fulfilled") {
+      toast.success("Profile updated successfully!");
       return {
         success: true,
         data: result.payload,
       };
     }
 
+    const errorMessage =
+      (result.payload as string) || "Failed to update profile";
+    toast.error(errorMessage);
     return {
       success: false,
-      error: (result.payload as string) || "Failed to update profile",
+      error: errorMessage,
     };
   };
 

@@ -2,6 +2,7 @@ import { useEffect, useState, type FC, type ReactNode } from "react";
 import { Outlet, useLocation, Navigate } from "react-router-dom";
 import { isAuthenticated } from "@/lib/token-provider";
 import { Spinner } from "@/components/ui";
+import { Toaster } from "@/components/shared";
 
 // Routes that don't require authentication
 const routesWithNoAuth = [
@@ -60,6 +61,7 @@ const AuthRedirector: FC<AuthRedirectorProps> = ({ children }) => {
 const Root = () => {
   return (
     <AuthRedirector>
+      <Toaster toastOptions={{ duration: 4000 }} />
       <Outlet />
     </AuthRedirector>
   );

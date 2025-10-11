@@ -17,7 +17,6 @@ export default function LoginForm() {
   const { signIn } = useUser();
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   const { control, handleSubmit } = useForm<LoginFormData>({
     defaultValues: {
@@ -28,7 +27,6 @@ export default function LoginForm() {
 
   const onSubmit = async (data: LoginFormData) => {
     setIsLoading(true);
-    setError(null);
 
     const result = await signIn({
       email: data.email,
@@ -43,8 +41,6 @@ export default function LoginForm() {
       }
 
       navigate("/dashboard");
-    } else {
-      setError(result.error || "Login failed");
     }
 
     setIsLoading(false);
@@ -63,13 +59,6 @@ export default function LoginForm() {
 
   return (
     <div className="space-y-5">
-      {/* Error Message */}
-      {error && (
-        <div className="p-3 rounded-md bg-destructive/10 border border-destructive/20">
-          <p className="text-sm text-destructive">{error}</p>
-        </div>
-      )}
-
       {/* Google Sign In Button */}
       <GoogleButton
         onClick={handleGoogleSignIn}

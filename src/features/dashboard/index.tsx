@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useUser } from "../authorization";
 import { fetchAuthSession } from "aws-amplify/auth";
+import { toast } from "react-hot-toast";
 
 export const DashboardPage: React.FC = () => {
   const navigate = useNavigate();
@@ -36,6 +37,7 @@ export const DashboardPage: React.FC = () => {
 
   const copyToken = () => {
     navigator.clipboard.writeText(token);
+    toast.success("Token copied to clipboard!");
     setTokenCopied(true);
     setTimeout(() => setTokenCopied(false), 2000);
   };
