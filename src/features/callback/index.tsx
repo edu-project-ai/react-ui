@@ -8,11 +8,13 @@ import {
 } from "aws-amplify/auth";
 import { useAppDispatch } from "@/hooks";
 import { setCurrentUser } from "@/features/authorization/store";
-import type { User } from "@/features/authorization/services/type";
+import { useUser } from "@/features/authorization";
+import { createUserFromCognito } from "@/lib/cognito-user-mapper";
 
 export const CallbackPage: React.FC = () => {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
+  const { hasProfile } = useUser();
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -27,38 +29,27 @@ export const CallbackPage: React.FC = () => {
           throw new Error("Failed to get ID token");
         }
 
-        // ✅ No manual token storage - AWS manages this
+        const user = createUserFromCognito(cognitoUser, userAttributes);
 
-        const user: User = {
-          id: cognitoUser.userId,
-          email:
-            userAttributes.email ||
-            cognitoUser.signInDetails?.loginId ||
-            cognitoUser.username,
-          cognitoSub: cognitoUser.userId,
-          firstName: userAttributes.given_name || "",
-          lastName: userAttributes.family_name || "",
-          displayName: userAttributes.name || cognitoUser.username,
-          programmingLevel: "beginner",
-          preferredLanguages: [],
-          accountStatus: "active",
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        };
-
-        // Save to Redux store
         dispatch(setCurrentUser(user));
 
-        // Redirect to dashboard
-        setTimeout(() => {
-          navigate("/dashboard", { replace: true });
-        }, 500);
+        // Check if profile exists using hook (service -> slice -> hook)
+        const profileCheck = await hasProfile();
+
+        if (!profileCheck.hasProfile) {
+          setTimeout(() => {
+            navigate("/onboarding/profile-photo", { replace: true });
+          }, 500);
+        } else {
+          setTimeout(() => {
+            navigate("/dashboard", { replace: true });
+          }, 500);
+        }
       } catch {
         // Silent error - Hub might still trigger
       }
     };
 
-    // Try immediate auth check after a small delay
     const timer = setTimeout(() => {
       checkAuthState();
     }, 1000);
@@ -76,31 +67,18 @@ export const CallbackPage: React.FC = () => {
               throw new Error("Failed to get ID token");
             }
 
-            // ✅ No manual token storage - AWS manages this
+            const user = createUserFromCognito(cognitoUser, userAttributes);
 
-            // Create user object from Cognito data
-            const user: User = {
-              id: cognitoUser.userId,
-              email:
-                userAttributes.email ||
-                cognitoUser.signInDetails?.loginId ||
-                cognitoUser.username,
-              cognitoSub: cognitoUser.userId,
-              firstName: userAttributes.given_name || "",
-              lastName: userAttributes.family_name || "",
-              displayName: userAttributes.name || cognitoUser.username,
-              programmingLevel: "beginner",
-              preferredLanguages: [],
-              accountStatus: "active",
-              createdAt: new Date().toISOString(),
-              updatedAt: new Date().toISOString(),
-            };
-
-            // Save to Redux store
             dispatch(setCurrentUser(user));
 
-            // Redirect to dashboard
-            navigate("/dashboard", { replace: true });
+            // Check if profile exists using hook (service -> slice -> hook)
+            const profileCheck = await hasProfile();
+
+            if (!profileCheck.hasProfile) {
+              navigate("/onboarding/profile-photo", { replace: true });
+            } else {
+              navigate("/dashboard", { replace: true });
+            }
           } catch {
             setError("Failed to complete Google sign in");
             setTimeout(() => navigate("/login"), 3000);
@@ -122,7 +100,7 @@ export const CallbackPage: React.FC = () => {
       clearTimeout(timer);
       unsubscribe();
     };
-  }, [navigate, dispatch]);
+  }, [navigate, dispatch, hasProfile]);
 
   if (error) {
     return (

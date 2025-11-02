@@ -15,6 +15,10 @@ import {
   RegisterPage,
   DashboardPage,
   CallbackPage,
+  EmailConfirmationPage,
+  ProfilePhotoPage,
+  SkillLevelPage,
+  TechnologiesPage,
 } from "@/features";
 
 const BasicDataRouter = () => {
@@ -29,7 +33,14 @@ const BasicDataRouter = () => {
         </Route>
         <Route path="/login" Component={LoginPage} />
         <Route path="/register" Component={RegisterPage} />
+        <Route path="/confirm-email" Component={EmailConfirmationPage} />
         <Route path="/auth/callback" Component={CallbackPage} />
+
+        {/* Onboarding flow */}
+        <Route path="/onboarding/profile-photo" Component={ProfilePhotoPage} />
+        <Route path="/onboarding/skill-level" Component={SkillLevelPage} />
+        <Route path="/onboarding/technologies" Component={TechnologiesPage} />
+
         <Route path="/dashboard" Component={DashboardPage} />
         <Route path="*" Component={NotFound} />
       </Route>

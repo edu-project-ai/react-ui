@@ -5,19 +5,33 @@ import type {
   SignUpRequest,
   SignInRequest,
   UpdateUserRequest,
+  SignInResult,
+  SignUpResult,
+  ConfirmSignUpResult,
+  ResendCodeResult,
+  AutoSignInResult,
+  SignOutResult,
+  GetProfileResult,
+  UpdateProfileResult,
+  SignUpResponse,
+  AuthResponse,
 } from "../services/type";
 import {
   signUp as signUpAction,
   confirmSignUp as confirmSignUpAction,
+  resendSignUpCode as resendSignUpCodeAction,
   signIn as signInAction,
+  autoSignIn as autoSignInAction,
   signOut as signOutAction,
   fetchUserProfile,
+  checkUserProfileExists,
   updateUserProfile,
   setCurrentUser,
   clearError,
   toggleTheme,
   setTheme,
 } from "../store/user.slice";
+import { parseCognitoError } from "../utils/cognito-errors";
 
 export const useUser = () => {
   const dispatch = useAppDispatch();
@@ -34,37 +48,61 @@ export const useUser = () => {
    * Sign up new user
    * @returns Result object with success status
    */
-  const signUp = async (data: SignUpRequest) => {
+  const signUp = async (data: SignUpRequest): Promise<SignUpResult> => {
     const result = await dispatch(signUpAction(data));
 
     if (result.meta.requestStatus === "fulfilled") {
       toast.success("Account created successfully!");
       return {
         success: true,
-        data: result.payload,
+        data: result.payload as SignUpResponse,
       };
     }
 
     const errorMessage = (result.payload as string) || "Sign up failed";
-    toast.error(errorMessage);
-    return {
-      success: false,
-      error: errorMessage,
-    };
+    const errorType = parseCognitoError(errorMessage);
+
+    switch (errorType.type) {
+      case "USER_EXISTS":
+        toast.error("An account with this email already exists");
+        return {
+          success: false,
+          error: errorType.message,
+          errorType: "USER_EXISTS",
+        };
+
+      case "WEAK_PASSWORD":
+        toast.error("Password does not meet requirements");
+        return {
+          success: false,
+          error: errorType.message,
+          errorType: "WEAK_PASSWORD",
+        };
+
+      default:
+        toast.error(errorMessage);
+        return {
+          success: false,
+          error: errorMessage,
+        };
+    }
   };
 
   /**
    * Confirm sign up with code
    * @returns Result object with success status
    */
-  const confirmSignUp = async (email: string, code: string) => {
+  const confirmSignUp = async (
+    email: string,
+    code: string
+  ): Promise<ConfirmSignUpResult> => {
     const result = await dispatch(confirmSignUpAction({ email, code }));
 
     if (result.meta.requestStatus === "fulfilled") {
       toast.success("Email confirmed successfully!");
       return {
         success: true,
-        data: result.payload,
+        data: undefined,
       };
     }
 
@@ -77,21 +115,101 @@ export const useUser = () => {
   };
 
   /**
+   * Resend sign up code
+   * @returns Result object with success status
+   */
+  const resendSignUpCode = async (email: string): Promise<ResendCodeResult> => {
+    const result = await dispatch(resendSignUpCodeAction({ email }));
+
+    if (result.meta.requestStatus === "fulfilled") {
+      toast.success("Confirmation code sent!");
+      return {
+        success: true,
+      };
+    }
+
+    const errorMessage = (result.payload as string) || "Failed to resend code";
+    toast.error(errorMessage);
+    return {
+      success: false,
+      error: errorMessage,
+    };
+  };
+
+  /**
    * Sign in user
    * @returns Result object with success status
    */
-  const signIn = async (data: SignInRequest) => {
+  const signIn = async (data: SignInRequest): Promise<SignInResult> => {
     const result = await dispatch(signInAction(data));
 
     if (result.meta.requestStatus === "fulfilled") {
       toast.success("Welcome back!");
       return {
         success: true,
-        data: result.payload,
+        data: result.payload as AuthResponse,
       };
     }
 
     const errorMessage = (result.payload as string) || "Sign in failed";
+    const errorType = parseCognitoError(errorMessage);
+
+    switch (errorType.type) {
+      case "NOT_CONFIRMED":
+        return {
+          success: false,
+          error: errorMessage,
+          needsConfirmation: true,
+        };
+
+      case "INVALID_CREDENTIALS":
+        toast.error("Invalid email or password");
+        return {
+          success: false,
+          error: errorType.message,
+          errorType: "INVALID_CREDENTIALS",
+        };
+
+      case "TOO_MANY_ATTEMPTS":
+        toast.error("Too many failed attempts. Please try again later.");
+        return {
+          success: false,
+          error: errorType.message,
+          errorType: "TOO_MANY_ATTEMPTS",
+        };
+
+      case "USER_NOT_FOUND":
+        toast.error("No account found with this email");
+        return {
+          success: false,
+          error: errorType.message,
+          errorType: "USER_NOT_FOUND",
+        };
+
+      default:
+        toast.error(errorMessage);
+        return {
+          success: false,
+          error: errorMessage,
+        };
+    }
+  };
+
+  /**
+   * Auto sign in using AWS Cognito (after email confirmation)
+   * @returns Result object with success status
+   */
+  const autoSignIn = async (): Promise<AutoSignInResult> => {
+    const result = await dispatch(autoSignInAction());
+
+    if (result.meta.requestStatus === "fulfilled") {
+      return {
+        success: true,
+        data: result.payload as AuthResponse,
+      };
+    }
+
+    const errorMessage = (result.payload as string) || "Auto sign-in failed";
     toast.error(errorMessage);
     return {
       success: false,
@@ -103,7 +221,7 @@ export const useUser = () => {
    * Sign out user
    * @returns Result object with success status
    */
-  const signOut = async () => {
+  const signOut = async (): Promise<SignOutResult> => {
     const result = await dispatch(signOutAction());
 
     if (result.meta.requestStatus === "fulfilled") {
@@ -123,13 +241,13 @@ export const useUser = () => {
    * Get current user profile
    * @returns Result object with success status
    */
-  const getProfile = async () => {
+  const getProfile = async (): Promise<GetProfileResult> => {
     const result = await dispatch(fetchUserProfile());
 
     if (result.meta.requestStatus === "fulfilled") {
       return {
         success: true,
-        data: result.payload,
+        data: result.payload as User,
       };
     }
 
@@ -140,17 +258,44 @@ export const useUser = () => {
   };
 
   /**
+   * Check if user has completed profile in backend
+   * Returns true if profile exists, false otherwise
+   * @returns Result object with boolean data
+   */
+  const hasProfile = async (): Promise<{
+    success: true;
+    hasProfile: boolean;
+  }> => {
+    const result = await dispatch(checkUserProfileExists());
+
+    if (result.meta.requestStatus === "fulfilled") {
+      return {
+        success: true,
+        hasProfile: result.payload as boolean,
+      };
+    }
+
+    // If check failed, assume no profile (fail-safe)
+    return {
+      success: true,
+      hasProfile: false,
+    };
+  };
+
+  /**
    * Update user profile
    * @returns Result object with success status
    */
-  const updateProfile = async (data: UpdateUserRequest) => {
+  const updateProfile = async (
+    data: UpdateUserRequest
+  ): Promise<UpdateProfileResult> => {
     const result = await dispatch(updateUserProfile(data));
 
     if (result.meta.requestStatus === "fulfilled") {
       toast.success("Profile updated successfully!");
       return {
         success: true,
-        data: result.payload,
+        data: result.payload as User,
       };
     }
 
@@ -202,9 +347,12 @@ export const useUser = () => {
     // Actions
     signUp,
     confirmSignUp,
+    resendSignUpCode,
     signIn,
+    autoSignIn,
     signOut,
     getProfile,
+    hasProfile,
     updateProfile,
     setUser,
     clearError: clearErrorMessage,

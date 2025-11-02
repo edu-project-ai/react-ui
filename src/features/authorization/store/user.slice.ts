@@ -4,12 +4,14 @@ import {
   type PayloadAction,
 } from "@reduxjs/toolkit";
 import { createUserService } from "../services/user.service";
+import { serializeError } from "../utils/cognito-errors";
 import type {
   User,
   SignUpRequest,
   SignInRequest,
   AuthResponse,
   UpdateUserRequest,
+  SignUpResponse,
 } from "../services/type";
 
 interface UserState {
@@ -28,20 +30,29 @@ const initialState: UserState = {
   theme: (localStorage.getItem("theme") as "light" | "dark") || "light",
 };
 
-
-export const signUp = createAsyncThunk<
-  { userId: string; isConfirmed: boolean },
-  SignUpRequest
->("user/signUp", async (data, { signal, rejectWithValue }) => {
-  try {
-    const service = createUserService(signal);
-    return await service.signUp(data);
-  } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : "Sign up failed";
-    return rejectWithValue(message);
+export const signUp = createAsyncThunk<SignUpResponse, SignUpRequest>(
+  "user/signUp",
+  async (data, { signal, rejectWithValue }) => {
+    try {
+      const service = createUserService(signal);
+      return await service.signUp(data);
+    } catch (error: unknown) {
+      return rejectWithValue(serializeError(error));
+    }
   }
-});
+);
 
+export const autoSignIn = createAsyncThunk<AuthResponse>(
+  "user/autoSignIn",
+  async (_, { signal, rejectWithValue }) => {
+    try {
+      const service = createUserService(signal);
+      return await service.autoSignIn();
+    } catch (error: unknown) {
+      return rejectWithValue(serializeError(error));
+    }
+  }
+);
 
 export const confirmSignUp = createAsyncThunk<
   void,
@@ -53,9 +64,19 @@ export const confirmSignUp = createAsyncThunk<
       const service = createUserService(signal);
       await service.confirmSignUp(email, code);
     } catch (error: unknown) {
-      const message =
-        error instanceof Error ? error.message : "Confirmation failed";
-      return rejectWithValue(message);
+      return rejectWithValue(serializeError(error));
+    }
+  }
+);
+
+export const resendSignUpCode = createAsyncThunk<void, { email: string }>(
+  "user/resendSignUpCode",
+  async ({ email }, { signal, rejectWithValue }) => {
+    try {
+      const service = createUserService(signal);
+      await service.resendSignUpCode(email);
+    } catch (error: unknown) {
+      return rejectWithValue(serializeError(error));
     }
   }
 );
@@ -68,8 +89,7 @@ export const signIn = createAsyncThunk<AuthResponse, SignInRequest>(
       const response = await service.signIn(data);
       return response;
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : "Sign in failed";
-      return rejectWithValue(message);
+      return rejectWithValue(serializeError(error));
     }
   }
 );
@@ -81,19 +101,11 @@ export const signOut = createAsyncThunk(
       const service = createUserService(signal);
       await service.signOut();
     } catch (error: unknown) {
-      const message =
-        error instanceof Error ? error.message : "Sign out failed";
-      return rejectWithValue(message);
+      return rejectWithValue(serializeError(error));
     }
   }
 );
 
-/**
- * Get current user profile
- *
- * NOTE: No manual token management needed
- * HttpClient fetches token automatically from AWS via token-provider
- */
 export const fetchUserProfile = createAsyncThunk<User>(
   "user/fetchProfile",
   async (_, { signal, rejectWithValue }) => {
@@ -115,7 +127,7 @@ export const fetchUserProfile = createAsyncThunk<User>(
         lastName: "",
         displayName: cognitoUser.username,
         programmingLevel: "beginner",
-        preferredLanguages: [],
+        programmingTechnologies: [],
         accountStatus: "active",
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
@@ -123,9 +135,25 @@ export const fetchUserProfile = createAsyncThunk<User>(
 
       return user;
     } catch (error: unknown) {
-      const message =
-        error instanceof Error ? error.message : "Failed to fetch profile";
-      return rejectWithValue(message);
+      return rejectWithValue(serializeError(error));
+    }
+  }
+);
+
+/**
+ * Check if user has completed profile (backend)
+ * Returns true if profile exists, false if 404 (no profile)
+ */
+export const checkUserProfileExists = createAsyncThunk<boolean>(
+  "user/checkProfileExists",
+  async (_, { signal }) => {
+    try {
+      const service = createUserService(signal);
+      const profile = await service.getUserProfile();
+      return !!profile; // true if profile exists, false if null
+    } catch {
+      // If backend endpoint not ready (404), assume no profile
+      return false;
     }
   }
 );
@@ -137,9 +165,7 @@ export const updateUserProfile = createAsyncThunk<User, UpdateUserRequest>(
       const service = createUserService(signal);
       return await service.updateProfile(data);
     } catch (error: unknown) {
-      const message =
-        error instanceof Error ? error.message : "Failed to update profile";
-      return rejectWithValue(message);
+      return rejectWithValue(serializeError(error));
     }
   }
 );
@@ -193,6 +219,19 @@ const userSlice = createSlice({
         state.error = (action.payload as string) || "Confirmation failed";
       })
 
+      // Resend sign up code
+      .addCase(resendSignUpCode.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(resendSignUpCode.fulfilled, (state) => {
+        state.loading = false;
+      })
+      .addCase(resendSignUpCode.rejected, (state, action) => {
+        state.loading = false;
+        state.error = (action.payload as string) || "Failed to resend code";
+      })
+
       // Sign in
       .addCase(signIn.pending, (state) => {
         state.loading = true;
@@ -207,6 +246,23 @@ const userSlice = createSlice({
       .addCase(signIn.rejected, (state, action) => {
         state.loading = false;
         state.error = (action.payload as string) || "Sign in failed";
+        state.isAuthenticated = false;
+      })
+
+      // Auto sign in (AWS Cognito)
+      .addCase(autoSignIn.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(autoSignIn.fulfilled, (state, action) => {
+        state.loading = false;
+        state.currentUser = action.payload.user;
+        state.isAuthenticated = true;
+        state.error = null;
+      })
+      .addCase(autoSignIn.rejected, (state, action) => {
+        state.loading = false;
+        state.error = (action.payload as string) || "Auto sign-in failed";
         state.isAuthenticated = false;
       })
 
