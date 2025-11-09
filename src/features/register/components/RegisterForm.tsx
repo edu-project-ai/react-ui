@@ -4,8 +4,9 @@ import { useState, useEffect } from "react";
 import { FormInput, FormPasswordInput } from "@/components/form";
 import { Button, LoadingSpinner } from "@/components/ui";
 import { GoogleButton, FormDivider } from "@/components/shared";
-import { signInWithRedirect, fetchUserAttributes } from "aws-amplify/auth";
+import { signInWithRedirect } from "aws-amplify/auth";
 import { useUser } from "@/features/authorization";
+import { toast } from "react-hot-toast";
 
 interface RegisterFormData {
   firstName: string;
@@ -19,11 +20,10 @@ interface RegisterFormData {
 
 export default function RegisterForm() {
   const navigate = useNavigate();
-  const { signUp } = useUser();
+  const { signUp, hasProfile } = useUser();
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [passwordStrength, setPasswordStrength] = useState(0);
-  const [error, setError] = useState<string | null>(null);
 
   const { control, handleSubmit, watch } = useForm<RegisterFormData>({
     defaultValues: {
@@ -54,39 +54,72 @@ export default function RegisterForm() {
 
   const onSubmit = async (data: RegisterFormData) => {
     setIsLoading(true);
-    setError(null);
 
-    const result = await signUp({
-      email: data.email,
-      password: data.password,
-      firstName: data.firstName,
-      lastName: data.lastName,
-      displayName: data.displayName,
-    });
+    try {
+      // Step 1: Sign up with AWS Cognito (autoSignIn enabled)
+      const signUpResult = await signUp({
+        email: data.email,
+        password: data.password,
+        firstName: data.firstName,
+        lastName: data.lastName,
+        displayName: data.displayName,
+      });
 
-    if (result.success) {
-      const signUpData = result.data as {
+      if (!signUpResult.success) {
+        setIsLoading(false);
+        return;
+      }
+
+      const signUpData = signUpResult.data as {
         userId: string;
         isConfirmed: boolean;
+        nextStep: string;
+        userConfirmed: boolean;
       };
 
-      if (signUpData.isConfirmed) {
-        try {
-          await fetchUserAttributes();
-        } catch {
-          // Could not fetch user attributes - not critical
+      // Step 2: Handle next step based on AWS Cognito response
+      // Check userConfirmed flag first (recommended by senior)
+      if (signUpData.userConfirmed === true) {
+        // Email pre-confirmed - check if profile exists using hook (service -> slice -> hook)
+        const profileCheck = await hasProfile();
+
+        if (profileCheck.hasProfile) {
+          toast.success("Account created! Redirecting to dashboard...");
+          navigate("/dashboard");
+        } else {
+          toast.success("Account created! Complete your profile...");
+          navigate("/onboarding/profile-photo");
         }
-        navigate("/dashboard");
-      } else {
+        return;
+      }
+
+      if (signUpData.nextStep === "CONFIRM_SIGN_UP") {
+        // Email confirmation required
+        // User is NOT logged in yet, but tokens are saved in localStorage
         navigate("/confirm-email", {
           state: { email: data.email },
         });
-      }
-    } else {
-      setError(result.error || "Registration failed");
-    }
+      } else if (signUpData.nextStep === "COMPLETE_AUTO_SIGN_IN") {
+        toast.success("Completing sign-in...");
 
-    setIsLoading(false);
+        // Check profile after auto sign-in
+        const profileCheck = await hasProfile();
+        navigate(
+          profileCheck.hasProfile ? "/dashboard" : "/onboarding/profile-photo"
+        );
+      } else if (signUpData.isConfirmed) {
+        // Fallback: email confirmed via isConfirmed flag
+        const profileCheck = await hasProfile();
+        navigate(
+          profileCheck.hasProfile ? "/dashboard" : "/onboarding/profile-photo"
+        );
+      }
+    } catch (error) {
+      console.error("Registration error:", error);
+      toast.error("Registration failed. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleGoogleSignUp = async () => {
@@ -114,13 +147,6 @@ export default function RegisterForm() {
 
   return (
     <div className="space-y-5">
-      {/* Error Message */}
-      {error && (
-        <div className="p-3 rounded-md bg-destructive/10 border border-destructive/20">
-          <p className="text-sm text-destructive">{error}</p>
-        </div>
-      )}
-
       {/* Google Sign Up Button */}
       <GoogleButton
         onClick={handleGoogleSignUp}

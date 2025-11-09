@@ -4,7 +4,7 @@ import { useState } from "react";
 import { FormInput, FormPasswordInput } from "@/components/form";
 import { Button, LoadingSpinner } from "@/components/ui";
 import { GoogleButton, FormDivider } from "@/components/shared";
-import { signInWithRedirect, fetchUserAttributes } from "aws-amplify/auth";
+import { signInWithRedirect } from "aws-amplify/auth";
 import { useUser } from "@/features/authorization";
 
 interface LoginFormData {
@@ -14,10 +14,9 @@ interface LoginFormData {
 
 export default function LoginForm() {
   const navigate = useNavigate();
-  const { signIn } = useUser();
+  const { signIn, hasProfile } = useUser();
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   const { control, handleSubmit } = useForm<LoginFormData>({
     defaultValues: {
@@ -28,26 +27,33 @@ export default function LoginForm() {
 
   const onSubmit = async (data: LoginFormData) => {
     setIsLoading(true);
-    setError(null);
 
-    const result = await signIn({
-      email: data.email,
-      password: data.password,
-    });
+    try {
+      const result = await signIn({
+        email: data.email,
+        password: data.password,
+      });
 
-    if (result.success) {
-      try {
-        await fetchUserAttributes();
-      } catch {
-        // Could not fetch user attributes - not critical
+      if (!result.success) {
+        if (result.needsConfirmation) {
+          navigate("/confirm-email", {
+            state: { email: data.email },
+          });
+        }
+        return;
       }
 
-      navigate("/dashboard");
-    } else {
-      setError(result.error || "Login failed");
-    }
+      // Check if user has completed profile using hook (service -> slice -> hook)
+      const profileCheck = await hasProfile();
 
-    setIsLoading(false);
+      navigate(
+        profileCheck.hasProfile ? "/dashboard" : "/onboarding/profile-photo"
+      );
+    } catch (error: unknown) {
+      console.error("Unexpected login error:", error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleGoogleSignIn = async () => {
@@ -63,13 +69,6 @@ export default function LoginForm() {
 
   return (
     <div className="space-y-5">
-      {/* Error Message */}
-      {error && (
-        <div className="p-3 rounded-md bg-destructive/10 border border-destructive/20">
-          <p className="text-sm text-destructive">{error}</p>
-        </div>
-      )}
-
       {/* Google Sign In Button */}
       <GoogleButton
         onClick={handleGoogleSignIn}

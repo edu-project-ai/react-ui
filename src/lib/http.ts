@@ -43,7 +43,7 @@ export class HttpClient {
    * @returns Promise with the response data
    */
   public async get<T>(url: string, config?: AxiosRequestConfig): Promise<T> {
-    return this.request<T>({ method: "GET", url, ...config });
+    return this.request<T>({ ...config, method: "GET", url });
   }
 
   /**
@@ -58,7 +58,7 @@ export class HttpClient {
     data: D,
     config?: AxiosRequestConfig
   ): Promise<T> {
-    return this.request<T>({ method: "POST", url, data, ...config });
+    return this.request<T>({ ...config, method: "POST", url, data });
   }
 
   /**
@@ -73,7 +73,7 @@ export class HttpClient {
     data: D,
     config?: AxiosRequestConfig
   ): Promise<T> {
-    return this.request<T>({ method: "PUT", url, data, ...config });
+    return this.request<T>({ ...config, method: "PUT", url, data });
   }
 
   /**
@@ -88,7 +88,7 @@ export class HttpClient {
     data: D,
     config?: AxiosRequestConfig
   ): Promise<T> {
-    return this.request<T>({ method: "PATCH", url, data, ...config });
+    return this.request<T>({ ...config, method: "PATCH", url, data });
   }
 
   /**
@@ -98,7 +98,7 @@ export class HttpClient {
    * @returns Promise with the response data
    */
   public async delete<T>(url: string, config?: AxiosRequestConfig): Promise<T> {
-    return this.request<T>({ method: "DELETE", url, ...config });
+    return this.request<T>({ ...config, method: "DELETE", url });
   }
 
   /**
@@ -132,13 +132,13 @@ export class HttpClient {
     }
 
     return this.request<T>({
+      ...config,
       method: "POST",
       url,
       data: formData,
       headers: {
         "Content-Type": "multipart/form-data",
       },
-      ...config,
     });
   }
 
@@ -179,6 +179,7 @@ export class HttpClient {
     }
 
     return this.request<T>({
+      ...config,
       method: "POST",
       url,
       params: queryParams,
@@ -186,7 +187,6 @@ export class HttpClient {
       headers: {
         "Content-Type": "multipart/form-data",
       },
-      ...config,
     });
   }
 
@@ -223,7 +223,9 @@ export class HttpClient {
         const token = await getAuthToken();
 
         if (token) {
-          config.headers["Authorization"] = `Bearer ${token}`;
+          // Ensure headers object exists
+          config.headers = config.headers || {};
+          config.headers.Authorization = `Bearer ${token}`;
         }
 
         return config;
