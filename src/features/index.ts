@@ -17,6 +17,7 @@ export {
   SkillLevelPage,
   TechnologiesPage,
 } from "./onboarding";
+export { SettingsPage } from "./settings";
 
 // Authorization feature
 export * from "./authorization";

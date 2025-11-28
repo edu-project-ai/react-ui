@@ -71,7 +71,6 @@ export const CallbackPage: React.FC = () => {
 
             dispatch(setCurrentUser(user));
 
-            // Check if profile exists using hook (service -> slice -> hook)
             const profileCheck = await hasProfile();
 
             if (!profileCheck.hasProfile) {
