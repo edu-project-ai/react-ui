@@ -5,7 +5,7 @@ import {
   RouterProvider,
 } from "react-router-dom";
 import Root from "../components/Root";
-import { PublicLayout, NotFound } from "../components/layout";
+import { PublicLayout, NotFound, PrivateLayout } from "../components/layout";
 import {
   HomePage,
   AboutPage,
@@ -19,6 +19,7 @@ import {
   ProfilePhotoPage,
   SkillLevelPage,
   TechnologiesPage,
+  SettingsPage,
 } from "@/features";
 
 const BasicDataRouter = () => {
@@ -40,8 +41,11 @@ const BasicDataRouter = () => {
         <Route path="/onboarding/profile-photo" Component={ProfilePhotoPage} />
         <Route path="/onboarding/skill-level" Component={SkillLevelPage} />
         <Route path="/onboarding/technologies" Component={TechnologiesPage} />
-
-        <Route path="/dashboard" Component={DashboardPage} />
+        <Route path="/" Component={PrivateLayout}>
+            <Route path="/dashboard" Component={DashboardPage} />
+            <Route path="/settings" Component={SettingsPage} />
+        </Route>
+    
         <Route path="*" Component={NotFound} />
       </Route>
     )
