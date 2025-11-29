@@ -1,5 +1,6 @@
 import { useAppDispatch, useAppSelector } from "../../../hooks";
 import { toast } from "react-hot-toast";
+import { useUpdateProfileMutation } from "../api";
 import type {
   User,
   SignUpRequest,
@@ -11,7 +12,6 @@ import type {
   ResendCodeResult,
   AutoSignInResult,
   SignOutResult,
-  GetProfileResult,
   UpdateProfileResult,
   SignUpResponse,
   AuthResponse,
@@ -23,9 +23,6 @@ import {
   signIn as signInAction,
   autoSignIn as autoSignInAction,
   signOut as signOutAction,
-  fetchUserProfile,
-  checkUserProfileExists,
-  updateUserProfile,
   setCurrentUser,
   clearError,
   toggleTheme,
@@ -33,8 +30,37 @@ import {
 } from "../store/user.slice";
 import { parseCognitoError } from "../utils/cognito-errors";
 
+/**
+ * useUser Hook - Authorization State Management
+ * 
+ * WHAT THIS HOOK PROVIDES:
+ * - Local state: currentUser (from Cognito), isAuthenticated, theme
+ * - Cognito operations: signUp, signIn, signOut, confirmSignUp
+ * - Backend mutations: updateProfile (RTK Query)
+ * 
+ * WHAT THIS HOOK DOES NOT PROVIDE:
+ * - ❌ Auto-fetching user profile from backend (use useGetUserProfileQuery directly)
+ * - ❌ Backend queries (use RTK Query hooks from userApi.ts directly)
+ * 
+ * WHY NO AUTO-FETCHING?
+ * - Avoids unnecessary 401 errors when user is not authenticated
+ * - Components should explicitly call useGetUserProfileQuery when needed
+ * - Keeps hook lightweight and focused on actions, not data fetching
+ * 
+ * EXAMPLE USAGE:
+ * ```tsx
+ * // For auth state and actions
+ * const { user, isAuthenticated, signIn, signOut } = useUser();
+ * 
+ * // For backend profile data (when needed)
+ * const { data: profile, isLoading } = useGetUserProfileQuery();
+ * ```
+ */
 export const useUser = () => {
   const dispatch = useAppDispatch();
+
+  const [updateProfileMutation, { isLoading: isUpdatingProfile }] =
+    useUpdateProfileMutation();
 
   const user = useAppSelector((state) => state.user?.currentUser);
   const loading = useAppSelector((state) => state.user?.loading);
@@ -238,74 +264,28 @@ export const useUser = () => {
   };
 
   /**
-   * Get current user profile
-   * @returns Result object with success status
-   */
-  const getProfile = async (): Promise<GetProfileResult> => {
-    const result = await dispatch(fetchUserProfile());
-
-    if (result.meta.requestStatus === "fulfilled") {
-      return {
-        success: true,
-        data: result.payload as User,
-      };
-    }
-
-    return {
-      success: false,
-      error: (result.payload as string) || "Failed to fetch profile",
-    };
-  };
-
-  /**
-   * Check if user has completed profile in backend
-   * Returns true if profile exists, false otherwise
-   * @returns Result object with boolean data
-   */
-  const hasProfile = async (): Promise<{
-    success: true;
-    hasProfile: boolean;
-  }> => {
-    const result = await dispatch(checkUserProfileExists());
-
-    if (result.meta.requestStatus === "fulfilled") {
-      return {
-        success: true,
-        hasProfile: result.payload as boolean,
-      };
-    }
-
-    // If check failed, assume no profile (fail-safe)
-    return {
-      success: true,
-      hasProfile: false,
-    };
-  };
-
-  /**
-   * Update user profile
+   * Update user profile using RTK Query
    * @returns Result object with success status
    */
   const updateProfile = async (
     data: UpdateUserRequest
   ): Promise<UpdateProfileResult> => {
-    const result = await dispatch(updateUserProfile(data));
-
-    if (result.meta.requestStatus === "fulfilled") {
+    try {
+      const updatedUser = await updateProfileMutation(data).unwrap();
       toast.success("Profile updated successfully!");
       return {
         success: true,
-        data: result.payload as User,
+        data: updatedUser,
+      };
+    } catch (error) {
+      const errorMessage = "Failed to update profile";
+      toast.error(errorMessage);
+      console.error("Update profile error:", error);
+      return {
+        success: false,
+        error: errorMessage,
       };
     }
-
-    const errorMessage =
-      (result.payload as string) || "Failed to update profile";
-    toast.error(errorMessage);
-    return {
-      success: false,
-      error: errorMessage,
-    };
   };
 
   /**
@@ -337,12 +317,13 @@ export const useUser = () => {
   };
 
   return {
-    // State
-    user,
-    loading,
+    // State from Redux Slice
+    user, // Current user from Cognito (minimal data: id, email, username)
+    loading: loading || isUpdatingProfile,
     error,
     isAuthenticated,
     theme,
+    isUpdatingProfile,
 
     // Actions
     signUp,
@@ -351,8 +332,6 @@ export const useUser = () => {
     signIn,
     autoSignIn,
     signOut,
-    getProfile,
-    hasProfile,
     updateProfile,
     setUser,
     clearError: clearErrorMessage,
