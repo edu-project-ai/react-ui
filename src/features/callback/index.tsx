@@ -8,13 +8,12 @@ import {
 } from "aws-amplify/auth";
 import { useAppDispatch } from "@/hooks";
 import { setCurrentUser } from "@/features/authorization/store";
-import { useUser } from "@/features/authorization";
+import { checkUserProfileExists } from "@/features/authorization/utils";
 import { createUserFromCognito } from "@/lib/cognito-user-mapper";
 
 export const CallbackPage: React.FC = () => {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
-  const { hasProfile } = useUser();
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -33,17 +32,21 @@ export const CallbackPage: React.FC = () => {
 
         dispatch(setCurrentUser(user));
 
-        // Check if profile exists using hook (service -> slice -> hook)
-        const profileCheck = await hasProfile();
+        // Check if profile exists using RTK Query
+        const profileResult = await checkUserProfileExists();
 
-        if (!profileCheck.hasProfile) {
+        if (profileResult.status === "found") {
+          setTimeout(() => {
+            navigate("/dashboard", { replace: true });
+          }, 500);
+        } else if (profileResult.status === "not_found") {
           setTimeout(() => {
             navigate("/onboarding/profile-photo", { replace: true });
           }, 500);
         } else {
-          setTimeout(() => {
-            navigate("/dashboard", { replace: true });
-          }, 500);
+          // Error - show error and retry
+          setError("Failed to verify profile. Please try again.");
+          setTimeout(() => navigate("/login"), 3000);
         }
       } catch {
         // Silent error - Hub might still trigger
@@ -71,12 +74,16 @@ export const CallbackPage: React.FC = () => {
 
             dispatch(setCurrentUser(user));
 
-            const profileCheck = await hasProfile();
+            const profileResult = await checkUserProfileExists();
 
-            if (!profileCheck.hasProfile) {
+            if (profileResult.status === "found") {
+              navigate("/dashboard", { replace: true });
+            } else if (profileResult.status === "not_found") {
               navigate("/onboarding/profile-photo", { replace: true });
             } else {
-              navigate("/dashboard", { replace: true });
+              // Error checking profile
+              setError("Failed to verify profile. Please try again.");
+              setTimeout(() => navigate("/login"), 3000);
             }
           } catch {
             setError("Failed to complete Google sign in");
@@ -99,7 +106,7 @@ export const CallbackPage: React.FC = () => {
       clearTimeout(timer);
       unsubscribe();
     };
-  }, [navigate, dispatch, hasProfile]);
+  }, [navigate, dispatch]);
 
   if (error) {
     return (

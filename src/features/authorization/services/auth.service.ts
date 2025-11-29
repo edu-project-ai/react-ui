@@ -7,38 +7,16 @@ import {
   confirmSignUp,
   resendSignUpCode,
   autoSignIn,
+  resetPassword,
+  confirmResetPassword,
 } from "aws-amplify/auth";
-import { HttpClient } from "../../../lib/http";
 import type {
   User,
   SignUpRequest,
   SignInRequest,
   AuthResponse,
   CognitoUser,
-  UpdateUserRequest,
 } from "./type";
-
-export interface CreateUserDto {
-  firstName: string;
-  lastName: string;
-  email: string;
-  displayName: string;
-  photoPath: string | null;
-  programmingLevel: string;
-  programmingTechnologies: string[];
-}
-
-export interface UpdateProgrammingLevelDto {
-  programmingLevel: string;
-}
-
-export interface UpdatePreferredTechnologiesDto {
-  programmingTechnologies: string[];
-}
-
-export interface UpdateRoleDto {
-  roleId: string;
-}
 
 /**
  * Custom error class for AWS Cognito errors
@@ -63,19 +41,12 @@ class CognitoError extends Error {
   }
 }
 
-export class UserService {
-  private httpClient: HttpClient;
-
-  constructor(signal?: AbortSignal) {
-    this.httpClient = new HttpClient(
-      {
-        baseURL: import.meta.env.VITE_API_BASE_URL,
-        timeout: 10000,
-      },
-      signal
-    );
-  }
-
+/**
+ * Auth Service - AWS Cognito Operations
+ * This service handles all AWS Cognito authentication operations.
+ * It does NOT make backend API calls - use userApi.ts for that.
+ */
+export class AuthService {
   async signUp(data: SignUpRequest): Promise<{
     userId: string;
     isConfirmed: boolean;
@@ -175,17 +146,11 @@ export class UserService {
         }
 
         if (nextStep === "CONFIRM_SIGN_IN_WITH_SMS_CODE") {
-          throw new CognitoError(
-            "SMSMFAException",
-            "SMS MFA code required"
-          );
+          throw new CognitoError("SMSMFAException", "SMS MFA code required");
         }
 
         if (nextStep === "CONFIRM_SIGN_IN_WITH_TOTP_CODE") {
-          throw new CognitoError(
-            "TOTPMFAException",
-            "TOTP MFA code required"
-          );
+          throw new CognitoError("TOTPMFAException", "TOTP MFA code required");
         }
 
         if (nextStep === "CONFIRM_SIGN_IN_WITH_NEW_PASSWORD_REQUIRED") {
@@ -290,6 +255,22 @@ export class UserService {
     await signOut();
   }
 
+  async resetPassword(email: string): Promise<void> {
+    await resetPassword({ username: email });
+  }
+
+  async confirmResetPassword(
+    email: string,
+    code: string,
+    newPassword: string
+  ): Promise<void> {
+    await confirmResetPassword({
+      username: email,
+      confirmationCode: code,
+      newPassword,
+    });
+  }
+
   async getCurrentCognitoUser(): Promise<CognitoUser> {
     const { userId, username, signInDetails } = await getCurrentUser();
 
@@ -309,99 +290,38 @@ export class UserService {
     }
   }
 
-  async createUserProfile(data: CreateUserDto): Promise<User> {
-    return await this.httpClient.post<User, CreateUserDto>("/api/users", data);
-  }
+  /**
+   * Get current user and token from Cognito session
+   * This is a utility method used after sign-in operations
+   */
+  async getCurrentAuthResponse(): Promise<AuthResponse> {
+    const cognitoUser = await this.getCurrentCognitoUser();
+    const session = await fetchAuthSession();
+    const idToken = session.tokens?.idToken?.toString();
 
-  async getUserProfile(): Promise<User | null> {
-    try {
-      const response = await this.httpClient.get<User>(
-        "/api/users/get-by-auth"
-      );
-      return response;
-    } catch (error: unknown) {
-      if (
-        error &&
-        typeof error === "object" &&
-        "response" in error &&
-        error.response &&
-        typeof error.response === "object" &&
-        "status" in error.response &&
-        error.response.status === 404
-      ) {
-        return null;
-      }
-      throw error;
+    if (!idToken) {
+      throw new CognitoError("TokenException", "Failed to get ID token");
     }
-  }
 
-  async getUserById(id: string): Promise<User> {
-    return await this.httpClient.get<User>(`/api/users/${id}`);
-  }
+    const user: User = {
+      id: cognitoUser.userId,
+      email: cognitoUser.email,
+      cognitoSub: cognitoUser.userId,
+      firstName: "",
+      lastName: "",
+      displayName: cognitoUser.username,
+      programmingLevel: "beginner",
+      programmingTechnologies: [],
+      accountStatus: "active",
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
 
-  async getUserByEmail(email: string): Promise<User> {
-    return await this.httpClient.get<User>(`/api/users/by-email/${email}`);
-  }
-
-  async getAllUsers(): Promise<User[]> {
-    return await this.httpClient.get<User[]>("/api/users");
-  }
-
-  async updateUserProfile(id: string, data: UpdateUserRequest): Promise<User> {
-    return await this.httpClient.put<User, UpdateUserRequest>(
-      `/api/users/${id}`,
-      data
-    );
-  }
-
-  async updateProgrammingLevel(
-    id: string,
-    data: UpdateProgrammingLevelDto
-  ): Promise<User> {
-    return await this.httpClient.put<User, UpdateProgrammingLevelDto>(
-      `/api/users/${id}/programming-level`,
-      data
-    );
-  }
-
-  async updatePreferredTechnologies(
-    id: string,
-    data: UpdatePreferredTechnologiesDto
-  ): Promise<User> {
-    return await this.httpClient.put<User, UpdatePreferredTechnologiesDto>(
-      `/api/users/${id}/preferred-technologies`,
-      data
-    );
-  }
-
-  async updateUserRole(id: string, data: UpdateRoleDto): Promise<User> {
-    return await this.httpClient.put<User, UpdateRoleDto>(
-      `/api/users/${id}/role`,
-      data
-    );
-  }
-
-  async deleteUser(id: string): Promise<void> {
-    return await this.httpClient.delete<void>(`/api/users/${id}`);
-  }
-
-  async uploadProfilePhoto(file: File): Promise<string> {
-    const formData = new FormData();
-    formData.append("photo", file);
-
-    const response = await this.httpClient.post<
-      { photoPath: string },
-      FormData
-    >("/api/users/profile-photo", formData);
-
-    return response.photoPath;
-  }
-
-  async updateProfile(data: UpdateUserRequest): Promise<User> {
-    return await this.httpClient.put<User>("/api/users/profile", data);
+    return {
+      user,
+      token: idToken,
+    };
   }
 }
 
-export const createUserService = (signal?: AbortSignal) => {
-  return new UserService(signal);
-};
+export const authService = new AuthService();

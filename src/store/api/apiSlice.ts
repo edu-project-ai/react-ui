@@ -21,7 +21,7 @@ export const apiSlice = createApi({
       return headers;
     },
   }),
-  tagTypes: ["LearningPath"],
+  tagTypes: ["LearningPath", "User"],
   endpoints: (builder) => ({
     getByPath: builder.query<unknown, string>({
       query: (path) => path,

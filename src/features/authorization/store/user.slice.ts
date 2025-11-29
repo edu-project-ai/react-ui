@@ -3,14 +3,13 @@ import {
   createAsyncThunk,
   type PayloadAction,
 } from "@reduxjs/toolkit";
-import { createUserService } from "../services/user.service";
+import { authService } from "../services/auth.service";
 import { serializeError } from "../utils/cognito-errors";
 import type {
   User,
   SignUpRequest,
   SignInRequest,
   AuthResponse,
-  UpdateUserRequest,
   SignUpResponse,
 } from "../services/type";
 
@@ -32,10 +31,9 @@ const initialState: UserState = {
 
 export const signUp = createAsyncThunk<SignUpResponse, SignUpRequest>(
   "user/signUp",
-  async (data, { signal, rejectWithValue }) => {
+  async (data, { rejectWithValue }) => {
     try {
-      const service = createUserService(signal);
-      return await service.signUp(data);
+      return await authService.signUp(data);
     } catch (error: unknown) {
       return rejectWithValue(serializeError(error));
     }
@@ -44,10 +42,9 @@ export const signUp = createAsyncThunk<SignUpResponse, SignUpRequest>(
 
 export const autoSignIn = createAsyncThunk<AuthResponse>(
   "user/autoSignIn",
-  async (_, { signal, rejectWithValue }) => {
+  async (_, { rejectWithValue }) => {
     try {
-      const service = createUserService(signal);
-      return await service.autoSignIn();
+      return await authService.autoSignIn();
     } catch (error: unknown) {
       return rejectWithValue(serializeError(error));
     }
@@ -59,10 +56,9 @@ export const confirmSignUp = createAsyncThunk<
   { email: string; code: string }
 >(
   "user/confirmSignUp",
-  async ({ email, code }, { signal, rejectWithValue }) => {
+  async ({ email, code }, { rejectWithValue }) => {
     try {
-      const service = createUserService(signal);
-      await service.confirmSignUp(email, code);
+      await authService.confirmSignUp(email, code);
     } catch (error: unknown) {
       return rejectWithValue(serializeError(error));
     }
@@ -71,10 +67,9 @@ export const confirmSignUp = createAsyncThunk<
 
 export const resendSignUpCode = createAsyncThunk<void, { email: string }>(
   "user/resendSignUpCode",
-  async ({ email }, { signal, rejectWithValue }) => {
+  async ({ email }, { rejectWithValue }) => {
     try {
-      const service = createUserService(signal);
-      await service.resendSignUpCode(email);
+      await authService.resendSignUpCode(email);
     } catch (error: unknown) {
       return rejectWithValue(serializeError(error));
     }
@@ -83,11 +78,9 @@ export const resendSignUpCode = createAsyncThunk<void, { email: string }>(
 
 export const signIn = createAsyncThunk<AuthResponse, SignInRequest>(
   "user/signIn",
-  async (data, { signal, rejectWithValue }) => {
+  async (data, { rejectWithValue }) => {
     try {
-      const service = createUserService(signal);
-      const response = await service.signIn(data);
-      return response;
+      return await authService.signIn(data);
     } catch (error: unknown) {
       return rejectWithValue(serializeError(error));
     }
@@ -96,10 +89,9 @@ export const signIn = createAsyncThunk<AuthResponse, SignInRequest>(
 
 export const signOut = createAsyncThunk(
   "user/signOut",
-  async (_, { signal, rejectWithValue }) => {
+  async (_, { rejectWithValue }) => {
     try {
-      const service = createUserService(signal);
-      await service.signOut();
+      await authService.signOut();
     } catch (error: unknown) {
       return rejectWithValue(serializeError(error));
     }
@@ -108,17 +100,10 @@ export const signOut = createAsyncThunk(
 
 export const fetchUserProfile = createAsyncThunk<User>(
   "user/fetchProfile",
-  async (_, { signal, rejectWithValue }) => {
+  async (_, { rejectWithValue }) => {
     try {
-      const service = createUserService(signal);
+      const cognitoUser = await authService.getCurrentCognitoUser();
 
-      // TODO: Enable when backend API is ready
-      // return await service.getUserProfile();
-
-      // For now, get user from Cognito
-      const cognitoUser = await service.getCurrentCognitoUser();
-
-      // Create user object from Cognito data
       const user: User = {
         id: cognitoUser.userId,
         email: cognitoUser.email,
@@ -134,36 +119,6 @@ export const fetchUserProfile = createAsyncThunk<User>(
       };
 
       return user;
-    } catch (error: unknown) {
-      return rejectWithValue(serializeError(error));
-    }
-  }
-);
-
-/**
- * Check if user has completed profile (backend)
- * Returns true if profile exists, false if 404 (no profile)
- */
-export const checkUserProfileExists = createAsyncThunk<boolean>(
-  "user/checkProfileExists",
-  async (_, { signal }) => {
-    try {
-      const service = createUserService(signal);
-      const profile = await service.getUserProfile();
-      return !!profile; // true if profile exists, false if null
-    } catch {
-      // If backend endpoint not ready (404), assume no profile
-      return false;
-    }
-  }
-);
-
-export const updateUserProfile = createAsyncThunk<User, UpdateUserRequest>(
-  "user/updateProfile",
-  async (data, { signal, rejectWithValue }) => {
-    try {
-      const service = createUserService(signal);
-      return await service.updateProfile(data);
     } catch (error: unknown) {
       return rejectWithValue(serializeError(error));
     }
@@ -281,7 +236,7 @@ const userSlice = createSlice({
         state.error = (action.payload as string) || "Sign out failed";
       })
 
-      // Fetch profile
+      // Fetch profile (Cognito session restoration only)
       .addCase(fetchUserProfile.pending, (state) => {
         state.loading = true;
       })
@@ -294,19 +249,6 @@ const userSlice = createSlice({
         state.loading = false;
         state.error = (action.payload as string) || "Failed to fetch profile";
         state.isAuthenticated = false;
-      })
-
-      // Update profile
-      .addCase(updateUserProfile.pending, (state) => {
-        state.loading = true;
-      })
-      .addCase(updateUserProfile.fulfilled, (state, action) => {
-        state.loading = false;
-        state.currentUser = action.payload;
-      })
-      .addCase(updateUserProfile.rejected, (state, action) => {
-        state.loading = false;
-        state.error = (action.payload as string) || "Failed to update profile";
       });
   },
 });
