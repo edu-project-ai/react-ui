@@ -5,12 +5,13 @@ import { Spinner } from "@/components/ui";
 
 // --- Логіка Redux ---
 import { useAppDispatch, useAppSelector } from "@/hooks";
-import { fetchUserProfile } from "@/features/authorization/store/user.slice";
+import { fetchUserProfile, setCurrentUser } from "@/features/authorization/store/user.slice";
 
 // --- Ваші утиліти ---
 import { isAuthenticated } from "@/lib/token-provider";
 import { isEmailVerified } from "@/lib/auth-utils";
 import { checkUserProfileExists } from "@/features/authorization/utils";
+import { userApi } from "@/features/authorization/api/userApi";
 
 // Routes that don't require authentication
 const routesWithNoAuth = [
@@ -67,12 +68,25 @@ const AuthRedirector: FC<AuthRedirectorProps> = ({ children }) => {
       let sessionIsValid = !!user;
 
       if (!user) {
-
         const cognitoAuthenticated = await isAuthenticated();
 
         if (cognitoAuthenticated) {
           try {
-            user = await dispatch(fetchUserProfile()).unwrap();
+            const cognitoUser = await dispatch(fetchUserProfile()).unwrap();
+            
+            try {
+              const backendProfile = await dispatch(
+                userApi.endpoints.getUserProfile.initiate(undefined, { forceRefetch: true })
+              ).unwrap();
+
+              user = backendProfile;
+            } catch (backendError) {
+
+              console.warn("⚠️ Backend profile not found, using Cognito data:", backendError);
+              user = cognitoUser;
+            }
+
+            dispatch(setCurrentUser(user));
             sessionIsValid = true;
           } catch (error) {
             console.error("Failed to restore session:", error);
