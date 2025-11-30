@@ -53,7 +53,7 @@ export const RecentActivity: React.FC<RecentActivityProps> = ({ paths }) => {
           <div
             key={path.id}
             className="flex items-start gap-3 p-3 rounded-lg hover:bg-accent/10 transition-colors cursor-pointer"
-            onClick={() => navigate(`/roadmaps/${path.id}`)}
+            onClick={() => navigate(`/learning-paths/${path.id}`)}
           >
             <div className="mt-1 p-1.5 rounded-md bg-primary/10 text-primary">
               <svg

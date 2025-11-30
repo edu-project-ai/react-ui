@@ -79,7 +79,7 @@ export const ActivePathCard: React.FC<ActivePathCardProps> = ({ path }) => {
             <Button
               size="lg"
               className="w-full md:w-auto"
-              onClick={() => navigate(`/roadmaps/${path.id}`)}
+              onClick={() => navigate(`/learning-paths/${path.id}`)}
             >
               Continue
               <svg

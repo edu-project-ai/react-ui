@@ -7,6 +7,7 @@ export interface Task {
   questionsCount: number | null;
   language: string | null;
   difficulty: string | null;
+  completed: boolean; // Added for task completion status
 }
 
 export interface Checkpoint {
@@ -15,17 +16,32 @@ export interface Checkpoint {
   description: string;
   estimatedDays?: number;
   tasks?: Task[];
+  completed?: boolean; // Added for checkpoint completion status
 }
 
 export interface CheckpointDetail extends Checkpoint {
+  tasks: Task[]; // Required for checkpoint detail page
   completedAt?: string;
 }
 
 export interface LearningPathProgress {
   total: number;
-  status: string;
   completed: number;
+  totalTasks: number;
+  completedTasks: number;
   percentage: number;
+  status?: string;
+}
+
+export interface TaskCompletionRequest {
+  checkpointId: string;
+  taskId: string;
+  completed: boolean;
+}
+
+export interface TaskCompletionResponse {
+  message: string;
+  progress: LearningPathProgress;
 }
 
 export interface LearningPath {

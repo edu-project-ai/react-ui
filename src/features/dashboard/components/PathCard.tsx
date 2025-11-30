@@ -12,7 +12,7 @@ export const PathCard: React.FC<PathCardProps> = ({ path }) => {
 
   return (
     <div
-      onClick={() => navigate(`/roadmaps/${path.id}`)}
+      onClick={() => navigate(`/learning-paths/${path.id}`)}
       className="bg-card border border-border rounded-xl p-5 shadow-sm hover:shadow-md transition-all cursor-pointer group flex flex-col h-full"
     >
       <div className="flex justify-between items-start mb-4">
