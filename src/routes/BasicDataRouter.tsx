@@ -21,6 +21,7 @@ import {
   TechnologiesPage,
   SettingsPage,
   LearningPathsPage,
+  CreateLearningPathPage,
   LearningPathDetailPage,
   CheckpointPage,
   TaskDetailPage,
@@ -53,6 +54,7 @@ const BasicDataRouter = () => {
           
           {/* Learning Paths routes */}
           <Route path="/learning-paths" Component={LearningPathsPage} />
+          <Route path="/learning-paths/create" Component={CreateLearningPathPage} />
           <Route path="/learning-paths/:id" Component={LearningPathDetailPage} />
           <Route path="/learning-paths/:id/checkpoints/:checkpointId" Component={CheckpointPage} />
           <Route path="/learning-paths/:id/tasks/:taskId" Component={TaskDetailPage} />
@@ -65,5 +67,6 @@ const BasicDataRouter = () => {
 
   return <RouterProvider router={router} />;
 };
+
 
 export default BasicDataRouter;

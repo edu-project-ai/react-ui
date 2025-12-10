@@ -21,6 +21,7 @@ export {
 export { SettingsPage } from "./settings";
 export {
   LearningPathsPage,
+  CreateLearningPathPage,
   LearningPathDetailPage,
   CheckpointPage,
   TaskDetailPage,

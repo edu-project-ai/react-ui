@@ -4,7 +4,9 @@ import type {
   CheckpointDetail,
   TaskCompletionRequest,
   TaskCompletionResponse,
-} from "@/types/learning-path";
+  CreateLearningPathRequest,
+  CreateLearningPathResponse,
+} from "../services/type";
 
 /**
  * Learning Paths API - Backend Data Operations
@@ -12,6 +14,16 @@ import type {
  */
 export const learningPathsApi = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
+    // Create a new learning path
+    createLearningPath: builder.mutation<CreateLearningPathResponse, CreateLearningPathRequest>({
+      query: (data) => ({
+        url: "/api/learning-paths",
+        method: "POST",
+        body: data,
+      }),
+      invalidatesTags: [{ type: "LearningPath", id: "LIST" }],
+    }),
+
     // Get all learning paths for current user
     getAllLearningPaths: builder.query<LearningPath[], void>({
       query: () => "/api/learning-paths",
@@ -106,4 +118,5 @@ export const {
   useGetLearningPathByIdQuery,
   useGetCheckpointQuery,
   useUpdateTaskCompletionMutation,
+  useCreateLearningPathMutation,
 } = learningPathsApi;

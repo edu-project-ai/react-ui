@@ -1,5 +1,5 @@
 import React from "react";
-import { useGetLearningPathsQuery } from "./api/learningPathApi";
+import { useGetAllLearningPathsQuery } from "@/features/learning-paths";
 import {
   WelcomeHeader,
   ActivePathCard,
@@ -13,7 +13,7 @@ import {
 import { Spinner } from "@/components/ui/spinner";
 
 export const DashboardPage: React.FC = () => {
-  const { data: paths, isLoading, error } = useGetLearningPathsQuery();
+  const { data: paths, isLoading, error } = useGetAllLearningPathsQuery();
 
   if (isLoading) {
     return (
