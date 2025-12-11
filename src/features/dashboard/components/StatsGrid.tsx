@@ -1,5 +1,5 @@
 import React from "react";
-import type { LearningPath } from "@/types/learning-path";
+import type { LearningPath } from "@/features/learning-paths/services/type";
 
 interface StatsGridProps {
   paths: LearningPath[];
@@ -9,14 +9,14 @@ export const StatsGrid: React.FC<StatsGridProps> = ({ paths }) => {
   // Calculate statistics
   const totalPaths = paths.length;
   const activePaths = paths.filter((p) => p.isActive).length;
-  const completedPaths = paths.filter((p) => p.progressPercentage === 100).length;
+  const completedPaths = paths.filter((p) => (p.progress?.percentage || 0) === 100).length;
   const totalCheckpoints = paths.reduce(
-    (acc, p) => acc + (p.totalCheckpoints || p.checkpoints?.length || 0),
+    (acc, p) => acc + (p.checkpoints?.length || 0),
     0
   );
   const completedCheckpoints = paths.reduce((acc, p) => {
-    const total = p.totalCheckpoints || p.checkpoints?.length || 0;
-    const progress = p.progressPercentage || 0;
+    const total = p.checkpoints?.length || 0;
+    const progress = p.progress?.percentage || 0;
     return acc + Math.round((total * progress) / 100);
   }, 0);
 

@@ -1,6 +1,7 @@
 // Features barrel exports
 export * from "./home";
 export * from "./dashboard";
+export * from "./learning-paths";
 
 // All page components
 export { HomePage } from "./home";
@@ -18,6 +19,13 @@ export {
   TechnologiesPage,
 } from "./onboarding";
 export { SettingsPage } from "./settings";
+export {
+  LearningPathsPage,
+  CreateLearningPathPage,
+  LearningPathDetailPage,
+  CheckpointPage,
+  TaskDetailPage,
+} from "./learning-paths";
 
 // Authorization feature
 export * from "./authorization";

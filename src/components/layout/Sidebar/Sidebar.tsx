@@ -26,7 +26,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const navItems = [
     {
       href: "/dashboard",
-      label: "Дашборд",
+      label: "Dashboard",
       icon: (
         <svg
           xmlns="http://www.w3.org/2000/svg"
@@ -47,8 +47,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
       ),
     },
     {
-      href: "/roadmaps",
-      label: "Мої роутмапи",
+      href: "/learning-paths",
+      label: "My Roadmaps",
       icon: (
         <svg
           xmlns="http://www.w3.org/2000/svg"
@@ -71,7 +71,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     },
     {
       href: "/progress",
-      label: "Прогрес",
+      label: "Progress",
       icon: (
         <svg
           xmlns="http://www.w3.org/2000/svg"
@@ -139,7 +139,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     },
     {
       href: "/settings",
-      label: "Налаштування",
+      label: "Settings",
       icon: (
         <svg
           xmlns="http://www.w3.org/2000/svg"

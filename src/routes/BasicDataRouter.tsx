@@ -20,6 +20,11 @@ import {
   SkillLevelPage,
   TechnologiesPage,
   SettingsPage,
+  LearningPathsPage,
+  CreateLearningPathPage,
+  LearningPathDetailPage,
+  CheckpointPage,
+  TaskDetailPage,
 } from "@/features";
 
 const BasicDataRouter = () => {
@@ -41,9 +46,18 @@ const BasicDataRouter = () => {
         <Route path="/onboarding/profile-photo" Component={ProfilePhotoPage} />
         <Route path="/onboarding/skill-level" Component={SkillLevelPage} />
         <Route path="/onboarding/technologies" Component={TechnologiesPage} />
+        
+        {/* Private routes */}
         <Route path="/" Component={PrivateLayout}>
-            <Route path="/dashboard" Component={DashboardPage} />
-            <Route path="/settings" Component={SettingsPage} />
+          <Route path="/dashboard" Component={DashboardPage} />
+          <Route path="/settings" Component={SettingsPage} />
+          
+          {/* Learning Paths routes */}
+          <Route path="/learning-paths" Component={LearningPathsPage} />
+          <Route path="/learning-paths/create" Component={CreateLearningPathPage} />
+          <Route path="/learning-paths/:id" Component={LearningPathDetailPage} />
+          <Route path="/learning-paths/:id/checkpoints/:checkpointId" Component={CheckpointPage} />
+          <Route path="/learning-paths/:id/tasks/:taskId" Component={TaskDetailPage} />
         </Route>
     
         <Route path="*" Component={NotFound} />
@@ -53,5 +67,6 @@ const BasicDataRouter = () => {
 
   return <RouterProvider router={router} />;
 };
+
 
 export default BasicDataRouter;
