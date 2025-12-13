@@ -17,9 +17,9 @@ export const Toaster = () => {
         duration: 6000,
 
         style: {
-          background: "hsl(var(--background))",
-          color: "hsl(var(--foreground))",
-          border: "1px solid hsl(var(--border))",
+          background: "var(--popover)",
+          color: "var(--popover-foreground)",
+          border: "1px solid var(--border)",
           borderRadius: "0.5rem",
           padding: "1rem",
           fontSize: "0.875rem",
@@ -30,38 +30,38 @@ export const Toaster = () => {
         success: {
           duration: 6000,
           style: {
-            background: "hsl(var(--background))",
-            color: "hsl(var(--foreground))",
-            border: "1px solid hsl(var(--primary))",
+            background: "var(--popover)",
+            color: "var(--popover-foreground)",
+            border: "1px solid var(--primary)",
           },
           iconTheme: {
-            primary: "hsl(var(--primary))",
-            secondary: "hsl(var(--background))",
+            primary: "var(--primary)",
+            secondary: "var(--popover)",
           },
         },
 
         error: {
           duration: 10000,
           style: {
-            background: "hsl(var(--background))",
-            color: "hsl(var(--foreground))",
-            border: "1px solid hsl(var(--destructive))",
+            background: "var(--popover)",
+            color: "var(--popover-foreground)",
+            border: "1px solid var(--destructive)",
           },
           iconTheme: {
-            primary: "hsl(var(--destructive))",
-            secondary: "hsl(var(--background))",
+            primary: "var(--destructive)",
+            secondary: "var(--popover)",
           },
         },
 
         loading: {
           style: {
-            background: "hsl(var(--background))",
-            color: "hsl(var(--foreground))",
-            border: "1px solid hsl(var(--accent))",
+            background: "var(--popover)",
+            color: "var(--popover-foreground)",
+            border: "1px solid var(--accent)",
           },
           iconTheme: {
-            primary: "hsl(var(--accent))",
-            secondary: "hsl(var(--background))",
+            primary: "var(--accent)",
+            secondary: "var(--popover)",
           },
         },
       }}

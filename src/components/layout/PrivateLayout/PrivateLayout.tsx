@@ -8,6 +8,7 @@ export interface PrivateLayoutProps {
   children?: React.ReactNode;
   className?: string;
 }
+import { RoadmapNotificationListener } from "@/features/learning-paths/components/RoadmapNotificationListener";
 
 export const PrivateLayout: React.FC<PrivateLayoutProps> = ({
   className,
@@ -17,6 +18,7 @@ export const PrivateLayout: React.FC<PrivateLayoutProps> = ({
 
   return (
     <div className="min-h-screen bg-background text-foreground flex">
+      <RoadmapNotificationListener />
       <Sidebar
         isOpen={sidebarOpen}
         setIsOpen={setSidebarOpen}
