@@ -2,6 +2,8 @@ import { useEffect } from "react";
 import toast from "react-hot-toast";
 import { signalRService } from "../../../services/signalrService";
 import { useSignalR } from "../../../context/SignalRContext";
+import { useAppDispatch } from "@/hooks";
+import { addNotification } from "@/features/notifications/store/notifications.slice";
 
 interface RoadmapUpdateMessage {
   type: "RoadmapProgress" | "RoadmapCompleted" | "RoadmapError" | "RoadmapPreview";
@@ -13,6 +15,7 @@ interface RoadmapUpdateMessage {
 
 export const RoadmapNotificationListener = () => {
   const { isConnected } = useSignalR();
+  const dispatch = useAppDispatch();
 
   useEffect(() => {
     if (!isConnected) return;
@@ -20,7 +23,7 @@ export const RoadmapNotificationListener = () => {
     const handleUpdate = (data: RoadmapUpdateMessage) => {
       switch (data.type) {
         case "RoadmapProgress":
-          toast.loading(data.message, { id: `roadmap-${data.correlationId}` }); 
+          toast.loading(data.message, { id: `roadmap-${data.correlationId}` });
           break;
         case "RoadmapCompleted":
           toast.dismiss(`roadmap-${data.correlationId}`);
@@ -36,6 +39,18 @@ export const RoadmapNotificationListener = () => {
         default:
           break;
       }
+
+      let notificationType: "info" | "success" | "warning" | "error" = "info";
+      
+      if (data.type === "RoadmapCompleted") notificationType = "success";
+      if (data.type === "RoadmapError") notificationType = "error";
+
+      dispatch(addNotification({
+        type: notificationType,
+        title: getTitleByType(data.type),
+        message: data.message,
+        data: data.data
+      }));
     };
 
     signalRService.on("RoadmapUpdate", handleUpdate);
@@ -43,7 +58,19 @@ export const RoadmapNotificationListener = () => {
     return () => {
       signalRService.off("RoadmapUpdate", handleUpdate);
     };
-  }, [isConnected]);
+  }, [isConnected, dispatch]);
 
   return null;
 };
+
+const getTitleByType = (type: RoadmapUpdateMessage["type"]): string => {
+    switch (type) {
+        case "RoadmapProgress": return "Генерація роутмапу";
+        case "RoadmapCompleted": return "Роутмап готовий";
+        case "RoadmapError": return "Помилка";
+        case "RoadmapPreview": return "Прев'ю готове";
+        default: return "Сповіщення";
+    }
+}
+
+

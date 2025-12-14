@@ -9,6 +9,7 @@ export interface PrivateLayoutProps {
   className?: string;
 }
 import { RoadmapNotificationListener } from "@/features/learning-paths/components/RoadmapNotificationListener";
+import { NotificationsMenu } from "@/features/notifications/components/NotificationsMenu";
 
 export const PrivateLayout: React.FC<PrivateLayoutProps> = ({
   className,
@@ -86,23 +87,7 @@ export const PrivateLayout: React.FC<PrivateLayoutProps> = ({
 
             <div className="flex items-center gap-3">
               {/* Notifications */}
-              <button className="relative p-2 rounded-md hover:bg-accent/10 transition-colors">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="20"
-                  height="20"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"></path>
-                  <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"></path>
-                </svg>
-                <span className="absolute top-1 right-1 size-2 bg-destructive rounded-full"></span>
-              </button>
+              <NotificationsMenu />
 
               {/* Theme toggle */}
               <ThemeToggle className="hidden sm:inline-flex" />

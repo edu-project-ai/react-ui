@@ -7,7 +7,7 @@ import {
 
 class SignalRService {
   private connection: HubConnection | null = null;
-  private url: string = process.env.VITE_NEXT_PUBLIC_SIGNALR_URL!;
+  private url: string = import.meta.env.VITE_NEXT_PUBLIC_SIGNALR_URL!;
 
   public startConnection = async (token: string): Promise<void> => {
     try {
