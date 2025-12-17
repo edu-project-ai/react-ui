@@ -38,11 +38,11 @@ export interface UploadPhotoResponse {
 export const userApi = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
     // Create user profile in backend DB
-    createUser: builder.mutation<User, CreateUserDto>({
-      query: (data) => ({
+    createUser: builder.mutation<User, FormData>({
+      query: (formData) => ({
         url: "/api/users",
         method: "POST",
-        body: data,
+        body: formData,
       }),
       invalidatesTags: ["User"],
     }),

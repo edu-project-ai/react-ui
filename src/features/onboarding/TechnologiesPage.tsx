@@ -72,24 +72,12 @@ export const TechnologiesPage = () => {
         throw new Error("Missing required user attributes");
       }
 
-      // Upload photo if selected
-      let photoPath: string | null = null;
-      if (photoFile) {
-        const uploadResult = await uploadPhoto(photoFile);
-        if (uploadResult.success) {
-          photoPath = uploadResult.photoPath || null;
-        } else {
-          console.error("Photo upload failed:", uploadResult.error);
-          // Continue without photo
-        }
-      }
-
       // Create user profile with all onboarding data
       const profileResult = await complete({
         firstName: attributes.given_name,
         lastName: attributes.family_name,
         displayName: attributes.name,
-        photoPath: photoPath,
+        photoFile: photoFile || null,
         programmingLevel: (skillLevel || "Beginner").toLowerCase(),
         programmingTechnologies: Array.from(selectedTechs).map(
           (tech) => TECHNOLOGY_TO_BACKEND_MAP[tech]

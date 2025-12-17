@@ -301,9 +301,17 @@ export const Sidebar: React.FC<SidebarProps> = ({
           )}
           title={isCollapsed ? user?.displayName || "User Profile" : undefined}
         >
-          <div className="size-8 min-w-8 rounded-full bg-gradient-to-br from-accent to-primary flex items-center justify-center text-white text-sm font-medium shadow-sm">
-            {getUserInitials()}
-          </div>
+          {user?.photoPath ? (
+            <img
+              src={user.photoPath}
+              alt={user.displayName || "User"}
+              className="size-8 min-w-8 rounded-full object-cover shadow-sm border border-border"
+            />
+          ) : (
+            <div className="size-8 min-w-8 rounded-full bg-gradient-to-br from-accent to-primary flex items-center justify-center text-white text-sm font-medium shadow-sm">
+              {getUserInitials()}
+            </div>
+          )}
           <div
             className={cn(
               "flex-1 min-w-0 transition-all duration-300 overflow-hidden",

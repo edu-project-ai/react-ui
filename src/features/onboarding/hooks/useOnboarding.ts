@@ -81,7 +81,7 @@ export const useOnboarding = () => {
     firstName: string;
     lastName: string;
     displayName: string;
-    photoPath: string | null;
+    photoFile: File | null;
     programmingLevel: string;
     programmingTechnologies: string[];
   }) => {
@@ -90,10 +90,22 @@ export const useOnboarding = () => {
         throw new Error("User email not found");
       }
 
-      const profile = await createUser({
-        ...data,
-        email: currentUserEmail,
-      }).unwrap();
+      const formData = new FormData();
+      formData.append("firstName", data.firstName);
+      formData.append("lastName", data.lastName);
+      formData.append("displayName", data.displayName);
+      formData.append("email", currentUserEmail);
+      formData.append("programmingLevel", data.programmingLevel);
+      
+      data.programmingTechnologies.forEach((tech) => {
+        formData.append("programmingTechnologies", tech);
+      });
+
+      if (data.photoFile) {
+        formData.append("photo", data.photoFile);
+      }
+
+      const profile = await createUser(formData).unwrap();
 
       toast.success("Profile created successfully!");
       dispatch(clearOnboardingData());
