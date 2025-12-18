@@ -53,10 +53,11 @@ export const RoadmapNotificationListener = () => {
       }));
     };
 
-    signalRService.on("RoadmapUpdate", handleUpdate);
+    // SignalR конвертує C# метод ReceiveRoadmapUpdate в camelCase
+    signalRService.on("receiveroadmapupdate", handleUpdate);
 
     return () => {
-      signalRService.off("RoadmapUpdate", handleUpdate);
+      signalRService.off("receiveroadmapupdate", handleUpdate);
     };
   }, [isConnected, dispatch]);
 
