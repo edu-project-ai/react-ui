@@ -24,9 +24,7 @@ const routesWithNoAuth = [
   "/auth/callback",
   "/forgot-password",
   "/confirm-email",
-  "/onboarding/profile-photo",
-  "/onboarding/skill-level",
-  "/onboarding/technologies",
+  "/onboarding",
 ];
 
 interface AuthRedirectorProps {
@@ -58,9 +56,13 @@ const AuthRedirector: FC<AuthRedirectorProps> = ({ children }) => {
       const locationState = location.state as {
         profileCreated?: boolean;
       } | null;
+      
+      // If just completed onboarding, trust that profile was created
+      // Skip re-checking to avoid race conditions with RTK Query cache
       if (locationState?.profileCreated) {
-        setProfileChecked(false);
-        setHasProfile(null);
+        console.log("✅ Profile just created, skipping verification");
+        setProfileChecked(true);
+        setHasProfile(true);
         window.history.replaceState({}, document.title);
       }
 
@@ -117,9 +119,7 @@ const AuthRedirector: FC<AuthRedirectorProps> = ({ children }) => {
 
       const selfManagedPages = [
         "/confirm-email",
-        "/onboarding/profile-photo",
-        "/onboarding/skill-level",
-        "/onboarding/technologies",
+        "/onboarding",
       ];
 
       if (selfManagedPages.includes(location.pathname)) {
@@ -149,7 +149,7 @@ const AuthRedirector: FC<AuthRedirectorProps> = ({ children }) => {
             setHasProfile(true);
           } else if (profileResult.status === "not_found") {
             setHasProfile(false);
-            setRedirectTo("/onboarding/profile-photo");
+            setRedirectTo("/onboarding");
             return;
           } else {
             setHasProfile(null);
@@ -158,7 +158,7 @@ const AuthRedirector: FC<AuthRedirectorProps> = ({ children }) => {
             );
           }
         } else if (hasProfile === false) {
-          setRedirectTo("/onboarding/profile-photo");
+          setRedirectTo("/onboarding");
           return;
         }
 
@@ -167,7 +167,7 @@ const AuthRedirector: FC<AuthRedirectorProps> = ({ children }) => {
         console.error("Root: Error during auth checks:", error);
         setProfileChecked(true);
         setHasProfile(false);
-        setRedirectTo("/onboarding/profile-photo");
+        setRedirectTo("/onboarding");
       }
     };
 
@@ -194,7 +194,7 @@ const AuthRedirector: FC<AuthRedirectorProps> = ({ children }) => {
       if (profileChecked) {
         return (
           <Navigate
-            to={hasProfile ? "/dashboard" : "/onboarding/profile-photo"}
+            to={hasProfile ? "/dashboard" : "/onboarding"}
             replace
           />
         );

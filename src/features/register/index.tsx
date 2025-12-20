@@ -1,5 +1,5 @@
 import React from "react";
-import { AuthLayout } from "@/components/features/auth";
+import { AuthLayout } from "@/features/authorization";
 import { RegisterForm } from "./components";
 
 export const RegisterPage: React.FC = () => {

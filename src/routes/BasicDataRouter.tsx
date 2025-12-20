@@ -16,9 +16,7 @@ import {
   DashboardPage,
   CallbackPage,
   EmailConfirmationPage,
-  ProfilePhotoPage,
-  SkillLevelPage,
-  TechnologiesPage,
+  OnboardingWizard,
   SettingsPage,
   LearningPathsPage,
   CreateLearningPathPage,
@@ -42,10 +40,8 @@ const BasicDataRouter = () => {
         <Route path="/confirm-email" Component={EmailConfirmationPage} />
         <Route path="/auth/callback" Component={CallbackPage} />
 
-        {/* Onboarding flow */}
-        <Route path="/onboarding/profile-photo" Component={ProfilePhotoPage} />
-        <Route path="/onboarding/skill-level" Component={SkillLevelPage} />
-        <Route path="/onboarding/technologies" Component={TechnologiesPage} />
+        {/* Onboarding Wizard - Single entry point */}
+        <Route path="/onboarding" Component={OnboardingWizard} />
         
         {/* Private routes */}
         <Route path="/" Component={PrivateLayout}>
