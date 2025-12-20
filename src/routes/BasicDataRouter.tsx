@@ -5,7 +5,9 @@ import {
   RouterProvider,
 } from "react-router-dom";
 import Root from "../components/Root";
-import { PublicLayout, NotFound, PrivateLayout } from "../components/layout";
+import { PublicLayout } from "../components/layout/PublicLayout/PublicLayout";
+import NotFound from "../components/layout/NotFound/NotFound";
+import { PrivateLayout } from "../components/layout/PrivateLayout/PrivateLayout";
 import {
   HomePage,
   AboutPage,

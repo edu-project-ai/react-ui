@@ -1,5 +1,7 @@
-import { PageHero, CTABanner } from "@/components/shared";
-import { FeatureDetail, AdditionalFeaturesGrid } from "./components";
+import PageHero from "@/components/shared/PageHero/PageHero";
+import CTABanner from "@/components/shared/CTABanner/CTABanner";
+import FeatureDetail from "./components/FeatureDetail";
+import AdditionalFeaturesGrid from "./components/AdditionalFeaturesGrid";
 
 export const FeaturesInfoPage = () => {
   const features = [

@@ -6,9 +6,9 @@ import {
   getCurrentUser,
   fetchUserAttributes,
 } from "aws-amplify/auth";
-import { useAppDispatch } from "@/hooks";
-import { setCurrentUser } from "@/features/authorization/store";
-import { checkUserProfileExists } from "@/features/authorization/utils";
+import { useAppDispatch } from "@/hooks/useReduxHooks";
+import { setCurrentUser } from "@/features/authorization";
+import { checkUserProfileExists } from "@/features/authorization";
 import { createUserFromCognito } from "@/lib/cognito-user-mapper";
 
 export const CallbackPage: React.FC = () => {

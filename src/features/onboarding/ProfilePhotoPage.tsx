@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { OnboardingLayout } from "@/components/layout";
-import { Button } from "@/components/ui";
+import { OnboardingLayout } from "@/components/layout/OnboardingLayout/OnboardingLayout";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useOnboarding } from "./hooks/useOnboarding";
 

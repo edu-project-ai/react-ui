@@ -1,9 +1,9 @@
 import { memo } from "react";
 import { Link, useParams } from "react-router-dom";
-import { useGetCheckpointQuery } from "../api";
-import { Spinner } from "@/components/ui";
+import { useGetCheckpointQuery } from "../api/learningPathsApi";
+import { Spinner } from "@/components/ui/spinner";
 import type { Task } from "../services/type";
-import { calculateCheckpointProgress } from "../utils";
+import { calculateCheckpointProgress } from "../utils/progress-helpers";
 import { ProgressBar } from "./ProgressBar";
 import { TaskListItem } from "./TaskListItem";
 

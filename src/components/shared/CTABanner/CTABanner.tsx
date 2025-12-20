@@ -1,5 +1,5 @@
 import { Link } from "react-router";
-import { Button } from "@/components/ui";
+import { Button } from "@/components/ui/button";
 
 interface CTABannerProps {
   title: string;

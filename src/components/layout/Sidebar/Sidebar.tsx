@@ -1,7 +1,7 @@
 import React from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
-import { useAppSelector } from "@/hooks";
+import { useAppSelector } from "@/hooks/useReduxHooks";
 import { useUser } from "@/features/authorization";
 
 interface SidebarProps {

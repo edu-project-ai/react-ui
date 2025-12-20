@@ -1,6 +1,8 @@
-import { useAppDispatch, useAppSelector } from "../../../hooks";
+import { useAppDispatch, useAppSelector } from "@/hooks/useReduxHooks";
 import { toast } from "react-hot-toast";
-import { useUpdateProfileMutation } from "../api";
+import { useUpdateProfileMutation } from "../api/userApi";
+import { checkUserProfileExists } from "../utils/profile-checker";
+import type { RootState } from "@/store/reducers/index";
 import type {
   User,
   SignUpRequest,
@@ -62,13 +64,13 @@ export const useUser = () => {
   const [updateProfileMutation, { isLoading: isUpdatingProfile }] =
     useUpdateProfileMutation();
 
-  const user = useAppSelector((state) => state.user?.currentUser);
-  const loading = useAppSelector((state) => state.user?.loading);
-  const error = useAppSelector((state) => state.user?.error);
+  const user = useAppSelector((state: RootState) => state.user?.currentUser);
+  const loading = useAppSelector((state: RootState) => state.user?.loading);
+  const error = useAppSelector((state: RootState) => state.user?.error);
   const isAuthenticated = useAppSelector(
-    (state) => state.user?.isAuthenticated
+    (state: RootState) => state.user?.isAuthenticated
   );
-  const theme = useAppSelector((state) => state.user?.theme);
+  const theme = useAppSelector((state: RootState) => state.user?.theme);
 
   /**
    * Sign up new user
@@ -316,6 +318,13 @@ export const useUser = () => {
     dispatch(setTheme(theme));
   };
 
+  /**
+   * Check if user has completed profile
+   */
+  const hasProfile = async () => {
+    return await checkUserProfileExists();
+  };
+
   return {
     // State from Redux Slice
     user, // Current user from Cognito (minimal data: id, email, username)
@@ -334,6 +343,7 @@ export const useUser = () => {
     signOut,
     updateProfile,
     setUser,
+    hasProfile,
     clearError: clearErrorMessage,
     toggleTheme: handleToggleTheme,
     setTheme: handleSetTheme,

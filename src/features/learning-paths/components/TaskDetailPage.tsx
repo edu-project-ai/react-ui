@@ -1,8 +1,8 @@
 import { useState, memo, useCallback } from "react";
 import { useParams, useLocation, useNavigate } from "react-router-dom";
-import { useGetCheckpointQuery } from "../api";
-import { useLearningPaths } from "../hooks";
-import { Spinner } from "@/components/ui";
+import { useGetCheckpointQuery } from "../api/learningPathsApi";
+import { useLearningPaths } from "../hooks/useLearningPaths";
+import { Spinner } from "@/components/ui/spinner";
 import type { Task } from "../services/type";
 
 const BackArrowIcon = memo(() => (

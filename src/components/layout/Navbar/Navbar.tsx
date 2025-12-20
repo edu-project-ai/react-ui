@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
-import { Logo } from "@/components/shared/Logo";
-import { ThemeToggle } from "@/components/shared/ThemeToggle";
+import { Logo } from "@/components/shared/Logo/Logo";
+import { ThemeToggle } from "@/components/shared/ThemeToggle/ThemeToggle";
 import { Button } from "@/components/ui/button";
 import { isAuthenticated } from "@/lib/token-provider";
 import { useUser } from "@/features/authorization";

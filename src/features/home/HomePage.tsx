@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Hub } from "aws-amplify/utils";
-import { HeroSection, FeaturesSection, CTASection } from "./components";
+import { HeroSection } from "./components/HeroSection";
+import { FeaturesSection } from "./components/FeaturesSection";
+import { CTASection } from "./components/CTASection";
 
 export const HomePage: React.FC = () => {
   const navigate = useNavigate();

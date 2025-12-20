@@ -1,16 +1,16 @@
 import { useEffect, useState, type FC, type ReactNode } from "react";
 import { Outlet, useLocation, Navigate } from "react-router-dom";
-import { Toaster } from "@/components/shared";
-import { Spinner } from "@/components/ui";
+import { Toaster } from "@/components/shared/Toast/Toast";
+import { Spinner } from "@/components/ui/spinner";
 
 // --- Логіка Redux ---
-import { useAppDispatch, useAppSelector } from "@/hooks";
+import { useAppDispatch, useAppSelector } from "@/hooks/useReduxHooks";
 import { fetchUserProfile, setCurrentUser } from "@/features/authorization/store/user.slice";
 
 // --- Ваші утиліти ---
 import { isAuthenticated } from "@/lib/token-provider";
 import { isEmailVerified } from "@/lib/auth-utils";
-import { checkUserProfileExists } from "@/features/authorization/utils";
+import { checkUserProfileExists } from "@/features/authorization/utils/profile-checker";
 import { userApi } from "@/features/authorization/api/userApi";
 
 // Routes that don't require authentication

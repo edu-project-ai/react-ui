@@ -2,16 +2,13 @@ import { useState, memo, useCallback } from "react";
 import { useForm, type Control } from "react-hook-form";
 import { useNavigate } from "react-router-dom";
 import { useAppSelector } from "@/hooks/useReduxHooks";
-import { useLearningPaths } from "../hooks";
-import { Spinner } from "@/components/ui";
-import {
-  FormInput,
-  FormTextarea,
-  FormSelect,
-  FormCheckbox,
-  FormArrayInput,
-  type SelectOption,
-} from "@/components/form";
+import { useLearningPaths } from "../hooks/useLearningPaths";
+import { Spinner } from "@/components/ui/spinner";
+import FormInput from "@/components/form/FormInput";
+import FormTextarea from "@/components/form/FormTextarea";
+import FormSelect, { type SelectOption } from "@/components/form/FormSelect";
+import FormCheckbox from "@/components/form/FormCheckbox";
+import FormArrayInput from "@/components/form/FormArrayInput";
 import { TECHNOLOGY_LABELS } from "@/features/onboarding/constants";
 import type { CreateLearningPathRequest } from "../services/type";
 

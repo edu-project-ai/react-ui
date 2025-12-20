@@ -1,9 +1,8 @@
-import { PageHero, CTABanner } from "@/components/shared";
-import {
-  MissionSection,
-  KeyFeaturesSection,
-  TechStackSection,
-} from "./components";
+import PageHero from "@/components/shared/PageHero/PageHero";
+import CTABanner from "@/components/shared/CTABanner/CTABanner";
+import MissionSection from "./components/MissionSection";
+import KeyFeaturesSection from "./components/KeyFeaturesSection";
+import TechStackSection from "./components/TechStackSection";
 
 export const AboutPage = () => {
   return (

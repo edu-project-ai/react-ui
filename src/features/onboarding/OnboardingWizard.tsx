@@ -2,7 +2,7 @@ import { useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-hot-toast";
 import { fetchUserAttributes } from "aws-amplify/auth";
-import { OnboardingLayout } from "@/components/layout";
+import { OnboardingLayout } from "@/components/layout/OnboardingLayout/OnboardingLayout";
 
 import { PhotoStep } from "./steps/PhotoStep";
 import { SkillLevelStep } from "./steps/SkillLevelStep";

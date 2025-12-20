@@ -1,7 +1,7 @@
 import { memo } from "react";
 import { Link, useParams } from "react-router-dom";
-import { useGetLearningPathByIdQuery } from "../api";
-import { Spinner } from "@/components/ui";
+import { useGetLearningPathByIdQuery } from "../api/learningPathsApi";
+import { Spinner } from "@/components/ui/spinner";
 import type { Checkpoint } from "../services/type";
 import { ProgressBar } from "./ProgressBar";
 import { CheckpointTimelineItem } from "./CheckpointTimelineItem";

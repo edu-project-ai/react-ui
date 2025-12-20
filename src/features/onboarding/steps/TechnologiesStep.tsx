@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { Button, LoadingSpinner } from "@/components/ui";
+import { Button } from "@/components/ui/button";
+import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { cn } from "@/lib/utils";
 import {
   TECH_CATEGORIES,

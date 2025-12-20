@@ -1,15 +1,13 @@
 import React from "react";
 import { useGetAllLearningPathsQuery } from "@/features/learning-paths";
-import {
-  WelcomeHeader,
-  ActivePathCard,
-  PathCard,
-  StatsGrid,
-  QuickActions,
-  RecentActivity,
-  EmptyState,
-  ActivityCalendar,
-} from "./components";
+import { WelcomeHeader } from "./components/WelcomeHeader";
+import { ActivePathCard } from "./components/ActivePathCard";
+import { PathCard } from "./components/PathCard";
+import { StatsGrid } from "./components/StatsGrid";
+import { QuickActions } from "./components/QuickActions";
+import { RecentActivity } from "./components/RecentActivity";
+import { EmptyState } from "./components/EmptyState";
+import { ActivityCalendar } from "./components/ActivityCalendar";
 import { Spinner } from "@/components/ui/spinner";
 
 export const DashboardPage: React.FC = () => {

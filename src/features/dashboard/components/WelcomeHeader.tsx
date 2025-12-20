@@ -1,5 +1,5 @@
 import React from "react";
-import { useAppSelector } from "@/hooks";
+import { useAppSelector } from "@/hooks/useReduxHooks";
 
 export const WelcomeHeader: React.FC = () => {
   const user = useAppSelector((state) => state.user.currentUser);

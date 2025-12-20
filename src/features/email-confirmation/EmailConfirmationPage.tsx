@@ -1,7 +1,8 @@
 import { useState, useRef, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { Button, LoadingSpinner } from "@/components/ui";
-import { Logo } from "@/components/shared";
+import { Button } from "@/components/ui/button";
+import { LoadingSpinner } from "@/components/ui/loading-spinner";
+import { Logo } from "@/components/shared/Logo/Logo";
 import { cn } from "@/lib/utils";
 import { useUser } from "@/features/authorization";
 import { toast } from "react-hot-toast";
