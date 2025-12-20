@@ -120,6 +120,7 @@ const AuthRedirector: FC<AuthRedirectorProps> = ({ children }) => {
       const selfManagedPages = [
         "/confirm-email",
         "/onboarding",
+        "/auth/callback"
       ];
 
       if (selfManagedPages.includes(location.pathname)) {
