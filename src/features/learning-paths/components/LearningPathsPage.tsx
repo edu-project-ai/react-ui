@@ -1,7 +1,7 @@
 import { memo } from "react";
 import { Link } from "react-router-dom";
-import { useGetAllLearningPathsQuery } from "../api";
-import { Spinner } from "@/components/ui";
+import { useGetAllLearningPathsQuery } from "../api/learningPathsApi";
+import { Spinner } from "@/components/ui/spinner";
 import type { LearningPath } from "../services/type";
 import { LearningPathCard } from "./LearningPathCard";
 

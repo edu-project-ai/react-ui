@@ -1,7 +1,7 @@
 import { memo } from "react";
 import { Link } from "react-router-dom";
 import type { Checkpoint } from "../services/type";
-import { isCheckpointCompleted } from "../utils";
+import { isCheckpointCompleted } from "../utils/progress-helpers";
 
 // ============================================================================
 // Icon Components

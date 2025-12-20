@@ -5,7 +5,9 @@ import {
   RouterProvider,
 } from "react-router-dom";
 import Root from "../components/Root";
-import { PublicLayout, NotFound, PrivateLayout } from "../components/layout";
+import { PublicLayout } from "../components/layout/PublicLayout/PublicLayout";
+import NotFound from "../components/layout/NotFound/NotFound";
+import { PrivateLayout } from "../components/layout/PrivateLayout/PrivateLayout";
 import {
   HomePage,
   AboutPage,
@@ -16,9 +18,7 @@ import {
   DashboardPage,
   CallbackPage,
   EmailConfirmationPage,
-  ProfilePhotoPage,
-  SkillLevelPage,
-  TechnologiesPage,
+  OnboardingWizard,
   SettingsPage,
   LearningPathsPage,
   CreateLearningPathPage,
@@ -42,10 +42,8 @@ const BasicDataRouter = () => {
         <Route path="/confirm-email" Component={EmailConfirmationPage} />
         <Route path="/auth/callback" Component={CallbackPage} />
 
-        {/* Onboarding flow */}
-        <Route path="/onboarding/profile-photo" Component={ProfilePhotoPage} />
-        <Route path="/onboarding/skill-level" Component={SkillLevelPage} />
-        <Route path="/onboarding/technologies" Component={TechnologiesPage} />
+        {/* Onboarding Wizard - Single entry point */}
+        <Route path="/onboarding" Component={OnboardingWizard} />
         
         {/* Private routes */}
         <Route path="/" Component={PrivateLayout}>

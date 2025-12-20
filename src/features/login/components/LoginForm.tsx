@@ -1,9 +1,12 @@
 import { useForm } from "react-hook-form";
 import { Link, useNavigate } from "react-router";
 import { useState } from "react";
-import { FormInput, FormPasswordInput } from "@/components/form";
-import { Button, LoadingSpinner } from "@/components/ui";
-import { GoogleButton, FormDivider } from "@/components/shared";
+import FormInput from "@/components/form/FormInput";
+import FormPasswordInput from "@/components/form/FormPasswordInput";
+import { Button } from "@/components/ui/button";
+import { LoadingSpinner } from "@/components/ui/loading-spinner";
+import GoogleButton from "@/components/shared/GoogleButton/GoogleButton";
+import FormDivider from "@/components/shared/FormDivider/FormDivider";
 import { signInWithRedirect } from "aws-amplify/auth";
 import { useUser } from "@/features/authorization";
 

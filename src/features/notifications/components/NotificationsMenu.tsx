@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-import { useAppDispatch, useAppSelector } from "@/hooks";
+import { useAppDispatch, useAppSelector } from "@/hooks/useReduxHooks";
 import {
   removeNotification,
   clearAllNotifications,

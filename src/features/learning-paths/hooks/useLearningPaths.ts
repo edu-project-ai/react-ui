@@ -1,12 +1,9 @@
-import { useAppDispatch, useAppSelector } from "../../../hooks";
+import { useAppDispatch, useAppSelector } from "@/hooks/useReduxHooks";
 import { toast } from "react-hot-toast";
 import {
-  useGetAllLearningPathsQuery,
-  useGetLearningPathByIdQuery,
-  useGetCheckpointQuery,
   useCreateLearningPathMutation,
   useUpdateTaskCompletionMutation,
-} from "../api";
+} from "../api/learningPathsApi";
 import {
   setFilter,
   setSortBy,
@@ -254,4 +251,4 @@ export {
   useGetCheckpointQuery,
   useCreateLearningPathMutation,
   useUpdateTaskCompletionMutation,
-} from "../api";
+} from "../api/learningPathsApi";

@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { Logo } from "@/components/shared";
+import { Logo } from "@/components/shared/Logo/Logo";
 
 interface OnboardingLayoutProps {
   children: ReactNode;

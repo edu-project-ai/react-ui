@@ -17,6 +17,7 @@ export {
   ProfilePhotoPage,
   SkillLevelPage,
   TechnologiesPage,
+  OnboardingWizard,
 } from "./onboarding";
 export { SettingsPage } from "./settings";
 export {

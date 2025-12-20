@@ -1,8 +1,8 @@
 import React, { useState } from "react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { ThemeToggle } from "@/components/shared";
-import { Sidebar } from "../Sidebar";
+import { ThemeToggle } from "@/components/shared/ThemeToggle/ThemeToggle";
+import { Sidebar } from "../Sidebar/Sidebar";
 import { Outlet } from "react-router-dom";
 export interface PrivateLayoutProps {
   children?: React.ReactNode;

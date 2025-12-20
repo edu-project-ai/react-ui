@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import toast from "react-hot-toast";
 import { signalRService } from "../../../services/signalrService";
 import { useSignalR } from "../../../context/SignalRContext";
-import { useAppDispatch } from "@/hooks";
+import { useAppDispatch } from "@/hooks/useReduxHooks";
 import { addNotification } from "@/features/notifications/store/notifications.slice";
 
 interface RoadmapUpdateMessage {
@@ -54,10 +54,10 @@ export const RoadmapNotificationListener = () => {
     };
 
     // SignalR конвертує C# метод ReceiveRoadmapUpdate в camelCase
-    signalRService.on("receiveroadmapupdate", handleUpdate);
+    signalRService.on("receiveroadmapupdate", handleUpdate as (...args: unknown[]) => void);
 
     return () => {
-      signalRService.off("receiveroadmapupdate", handleUpdate);
+      signalRService.off("receiveroadmapupdate", handleUpdate as (...args: unknown[]) => void);
     };
   }, [isConnected, dispatch]);
 

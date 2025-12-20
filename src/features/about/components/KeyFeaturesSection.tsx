@@ -1,4 +1,4 @@
-import { FeatureCard } from "@/components/shared";
+import FeatureCard from "@/components/shared/FeatureCard/FeatureCard";
 
 export default function KeyFeaturesSection() {
   const features = [

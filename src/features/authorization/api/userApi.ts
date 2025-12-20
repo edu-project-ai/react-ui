@@ -50,6 +50,7 @@ export const userApi = apiSlice.injectEndpoints({
     getUserProfile: builder.query<User, void>({
       query: () => "/api/users/get-by-auth",
       providesTags: ["User"],
+      keepUnusedDataFor: 0,
     }),
 
     getUserById: builder.query<User, string>({

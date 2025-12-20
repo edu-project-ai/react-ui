@@ -1,9 +1,9 @@
-import { useAppDispatch, useAppSelector } from "@/hooks";
+import { useAppDispatch, useAppSelector } from "@/hooks/useReduxHooks";
 import { toast } from "react-hot-toast";
 import {
   useUploadProfilePhotoMutation,
   useCreateUserMutation,
-} from "@/features/authorization/api";
+} from "@/features/authorization/api/userApi";
 import {
   setPhotoPreview as setPhotoPreviewAction,
   setSkillLevel as setSkillLevelAction,
