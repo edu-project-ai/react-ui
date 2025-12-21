@@ -13,6 +13,7 @@
     "@auth0/auth0-react": "^2.5.0",
     "@aws-amplify/ui-react": "^6.13.0",
     "@hookform/resolvers": "^5.2.2",
+    "@microsoft/signalr": "^10.0.0",
     "@monaco-editor/react": "^4.7.0",
     "@radix-ui/react-dialog": "^1.1.15",
     "@radix-ui/react-dropdown-menu": "^2.1.16",

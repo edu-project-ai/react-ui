@@ -2,12 +2,18 @@ import axios, { type AxiosInstance, type AxiosRequestConfig } from "axios";
 import { getAuthToken } from "./token-provider";
 
 /**
- * HttpClient with AWS Cognito Integration
- *
- * Architecture:
+ * @deprecated This HttpClient class is deprecated. Use RTK Query hooks instead.
+ * 
+ * All server-state interactions should use RTK Query endpoints defined in:
+ * - `@/features/authorization/api/userApi.ts`
+ * - `@/features/learning-paths/api/learningPathsApi.ts`
+ * - `@/features/dashboard/api/dashboardApi.ts`
+ * 
+ * This class is maintained for legacy compatibility only.
+ * 
+ * Original Architecture:
  * - NO localStorage for tokens (AWS Cognito manages this)
  * - Dynamically fetches token before each request
- * - Low-level service that doesn't know about AWS directly
  * - Uses token-provider as abstraction layer
  */
 export class HttpClient {

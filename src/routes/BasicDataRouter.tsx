@@ -5,7 +5,9 @@ import {
   RouterProvider,
 } from "react-router-dom";
 import Root from "../components/Root";
-import { PublicLayout, NotFound } from "../components/layout";
+import { PublicLayout } from "../components/layout/PublicLayout/PublicLayout";
+import NotFound from "../components/layout/NotFound/NotFound";
+import { PrivateLayout } from "../components/layout/PrivateLayout/PrivateLayout";
 import {
   HomePage,
   AboutPage,
@@ -16,9 +18,13 @@ import {
   DashboardPage,
   CallbackPage,
   EmailConfirmationPage,
-  ProfilePhotoPage,
-  SkillLevelPage,
-  TechnologiesPage,
+  OnboardingWizard,
+  SettingsPage,
+  LearningPathsPage,
+  CreateLearningPathPage,
+  LearningPathDetailPage,
+  CheckpointPage,
+  TaskDetailPage,
 } from "@/features";
 
 const BasicDataRouter = () => {
@@ -36,12 +42,22 @@ const BasicDataRouter = () => {
         <Route path="/confirm-email" Component={EmailConfirmationPage} />
         <Route path="/auth/callback" Component={CallbackPage} />
 
-        {/* Onboarding flow */}
-        <Route path="/onboarding/profile-photo" Component={ProfilePhotoPage} />
-        <Route path="/onboarding/skill-level" Component={SkillLevelPage} />
-        <Route path="/onboarding/technologies" Component={TechnologiesPage} />
-
-        <Route path="/dashboard" Component={DashboardPage} />
+        {/* Onboarding Wizard - Single entry point */}
+        <Route path="/onboarding" Component={OnboardingWizard} />
+        
+        {/* Private routes */}
+        <Route path="/" Component={PrivateLayout}>
+          <Route path="/dashboard" Component={DashboardPage} />
+          <Route path="/settings" Component={SettingsPage} />
+          
+          {/* Learning Paths routes */}
+          <Route path="/learning-paths" Component={LearningPathsPage} />
+          <Route path="/learning-paths/create" Component={CreateLearningPathPage} />
+          <Route path="/learning-paths/:id" Component={LearningPathDetailPage} />
+          <Route path="/learning-paths/:id/checkpoints/:checkpointId" Component={CheckpointPage} />
+          <Route path="/learning-paths/:id/tasks/:taskId" Component={TaskDetailPage} />
+        </Route>
+    
         <Route path="*" Component={NotFound} />
       </Route>
     )
@@ -49,5 +65,6 @@ const BasicDataRouter = () => {
 
   return <RouterProvider router={router} />;
 };
+
 
 export default BasicDataRouter;

@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { OnboardingLayout } from "@/components/layout";
-import { Button, LoadingSpinner } from "@/components/ui";
+import { OnboardingLayout } from "@/components/layout/OnboardingLayout/OnboardingLayout";
+import { Button } from "@/components/ui/button";
+import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { cn } from "@/lib/utils";
 import { toast } from "react-hot-toast";
 import { fetchUserAttributes } from "aws-amplify/auth";
@@ -22,7 +23,6 @@ export const TechnologiesPage = () => {
     loading,
     setTechnologies: saveTechnologies,
     clearData,
-    uploadPhoto,
     complete,
   } = useOnboarding();
 
@@ -72,24 +72,12 @@ export const TechnologiesPage = () => {
         throw new Error("Missing required user attributes");
       }
 
-      // Upload photo if selected
-      let photoPath: string | null = null;
-      if (photoFile) {
-        const uploadResult = await uploadPhoto(photoFile);
-        if (uploadResult.success) {
-          photoPath = uploadResult.photoPath || null;
-        } else {
-          console.error("Photo upload failed:", uploadResult.error);
-          // Continue without photo
-        }
-      }
-
       // Create user profile with all onboarding data
       const profileResult = await complete({
         firstName: attributes.given_name,
         lastName: attributes.family_name,
         displayName: attributes.name,
-        photoPath: photoPath,
+        photoFile: photoFile || null,
         programmingLevel: (skillLevel || "Beginner").toLowerCase(),
         programmingTechnologies: Array.from(selectedTechs).map(
           (tech) => TECHNOLOGY_TO_BACKEND_MAP[tech]

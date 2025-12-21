@@ -1,11 +1,15 @@
 import { useForm } from "react-hook-form";
 import { Link, useNavigate } from "react-router";
 import { useState, useEffect } from "react";
-import { FormInput, FormPasswordInput } from "@/components/form";
-import { Button, LoadingSpinner } from "@/components/ui";
-import { GoogleButton, FormDivider } from "@/components/shared";
+import FormInput from "@/components/form/FormInput";
+import FormPasswordInput from "@/components/form/FormPasswordInput";
+import { Button } from "@/components/ui/button";
+import { LoadingSpinner } from "@/components/ui/loading-spinner";
+import GoogleButton from "@/components/shared/GoogleButton/GoogleButton";
+import FormDivider from "@/components/shared/FormDivider/FormDivider";
 import { signInWithRedirect } from "aws-amplify/auth";
 import { useUser } from "@/features/authorization";
+import { checkUserProfileExists } from "@/features/authorization/utils/profile-checker";
 import { toast } from "react-hot-toast";
 
 interface RegisterFormData {
@@ -20,7 +24,7 @@ interface RegisterFormData {
 
 export default function RegisterForm() {
   const navigate = useNavigate();
-  const { signUp, hasProfile } = useUser();
+  const { signUp } = useUser();
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [passwordStrength, setPasswordStrength] = useState(0);
@@ -80,15 +84,17 @@ export default function RegisterForm() {
       // Step 2: Handle next step based on AWS Cognito response
       // Check userConfirmed flag first (recommended by senior)
       if (signUpData.userConfirmed === true) {
-        // Email pre-confirmed - check if profile exists using hook (service -> slice -> hook)
-        const profileCheck = await hasProfile();
+        // Email pre-confirmed - check if profile exists using RTK Query
+        const profileResult = await checkUserProfileExists();
 
-        if (profileCheck.hasProfile) {
+        if (profileResult.status === "found") {
           toast.success("Account created! Redirecting to dashboard...");
           navigate("/dashboard");
-        } else {
+        } else if (profileResult.status === "not_found") {
           toast.success("Account created! Complete your profile...");
           navigate("/onboarding/profile-photo");
+        } else {
+          toast.error("Failed to verify profile. Please try again.");
         }
         return;
       }
@@ -103,16 +109,24 @@ export default function RegisterForm() {
         toast.success("Completing sign-in...");
 
         // Check profile after auto sign-in
-        const profileCheck = await hasProfile();
-        navigate(
-          profileCheck.hasProfile ? "/dashboard" : "/onboarding/profile-photo"
-        );
+        const profileResult = await checkUserProfileExists();
+        if (profileResult.status === "found") {
+          navigate("/dashboard");
+        } else if (profileResult.status === "not_found") {
+          navigate("/onboarding/profile-photo");
+        } else {
+          toast.error("Failed to verify profile. Please try again.");
+        }
       } else if (signUpData.isConfirmed) {
         // Fallback: email confirmed via isConfirmed flag
-        const profileCheck = await hasProfile();
-        navigate(
-          profileCheck.hasProfile ? "/dashboard" : "/onboarding/profile-photo"
-        );
+        const profileResult = await checkUserProfileExists();
+        if (profileResult.status === "found") {
+          navigate("/dashboard");
+        } else if (profileResult.status === "not_found") {
+          navigate("/onboarding/profile-photo");
+        } else {
+          toast.error("Failed to verify profile. Please try again.");
+        }
       }
     } catch (error) {
       console.error("Registration error:", error);

@@ -1,19 +1,30 @@
-import { useAppDispatch, useAppSelector } from "@/hooks";
+import { useAppDispatch, useAppSelector } from "@/hooks/useReduxHooks";
 import { toast } from "react-hot-toast";
+import {
+  useUploadProfilePhotoMutation,
+  useCreateUserMutation,
+} from "@/features/authorization/api/userApi";
 import {
   setPhotoPreview as setPhotoPreviewAction,
   setSkillLevel as setSkillLevelAction,
   setTechnologies as setTechnologiesAction,
   clearOnboardingData,
-  clearError,
-  uploadProfilePhoto,
-  completeOnboarding,
 } from "../store/onboarding.slice";
 import type { SkillLevel, Technology } from "../constants";
 
+/**
+ * Hook for onboarding flow
+ * Uses RTK Query for backend operations and Redux for UI state
+ */
 export const useOnboarding = () => {
   const dispatch = useAppDispatch();
 
+  // RTK Query mutations
+  const [uploadPhoto, { isLoading: isUploadingPhoto }] =
+    useUploadProfilePhotoMutation();
+  const [createUser, { isLoading: isCreatingUser }] = useCreateUserMutation();
+
+  // Redux state
   const photoPreview = useAppSelector(
     (state) => state.onboarding?.photoPreview
   );
@@ -21,8 +32,9 @@ export const useOnboarding = () => {
   const technologies = useAppSelector(
     (state) => state.onboarding?.technologies
   );
-  const loading = useAppSelector((state) => state.onboarding?.loading);
-  const error = useAppSelector((state) => state.onboarding?.error);
+  const currentUserEmail = useAppSelector(
+    (state) => state.user?.currentUser?.email
+  );
 
   const setPhotoPreview = (preview: string | null) => {
     dispatch(setPhotoPreviewAction(preview));
@@ -40,67 +52,89 @@ export const useOnboarding = () => {
     dispatch(clearOnboardingData());
   };
 
-  const clearErrorMessage = () => {
-    dispatch(clearError());
-  };
-
-  const uploadPhoto = async (file: File) => {
-    const result = await dispatch(uploadProfilePhoto(file));
-
-    if (result.meta.requestStatus === "fulfilled") {
+  /**
+   * Upload profile photo using RTK Query
+   */
+  const uploadProfilePhoto = async (file: File) => {
+    try {
+      const result = await uploadPhoto(file).unwrap();
+      toast.success("Photo uploaded successfully!");
       return {
         success: true,
-        photoPath: result.payload as string,
+        photoPath: result.photoPath,
+      };
+    } catch (error) {
+      const errorMessage = "Failed to upload photo";
+      toast.error(errorMessage);
+      console.error("Upload photo error:", error);
+      return {
+        success: false,
+        error: errorMessage,
       };
     }
-
-    const errorMessage = (result.payload as string) || "Failed to upload photo";
-    toast.error(errorMessage);
-    return {
-      success: false,
-      error: errorMessage,
-    };
   };
 
+  /**
+   * Complete onboarding by creating user profile using RTK Query
+   */
   const complete = async (data: {
     firstName: string;
     lastName: string;
     displayName: string;
-    photoPath: string | null;
+    photoFile: File | null;
     programmingLevel: string;
     programmingTechnologies: string[];
   }) => {
-    const result = await dispatch(completeOnboarding(data));
+    try {
+      if (!currentUserEmail) {
+        throw new Error("User email not found");
+      }
 
-    if (result.meta.requestStatus === "fulfilled") {
+      const formData = new FormData();
+      formData.append("firstName", data.firstName);
+      formData.append("lastName", data.lastName);
+      formData.append("displayName", data.displayName);
+      formData.append("email", currentUserEmail);
+      formData.append("programmingLevel", data.programmingLevel);
+      
+      data.programmingTechnologies.forEach((tech) => {
+        formData.append("programmingTechnologies", tech);
+      });
+
+      if (data.photoFile) {
+        formData.append("photo", data.photoFile);
+      }
+
+      const profile = await createUser(formData).unwrap();
+
       toast.success("Profile created successfully!");
+      dispatch(clearOnboardingData());
       return {
         success: true,
-        profile: result.payload,
+        profile,
+      };
+    } catch (error) {
+      const errorMessage = "Failed to complete onboarding";
+      toast.error(errorMessage);
+      console.error("Complete onboarding error:", error);
+      return {
+        success: false,
+        error: errorMessage,
       };
     }
-
-    const errorMessage =
-      (result.payload as string) || "Failed to complete onboarding";
-    toast.error(errorMessage);
-    return {
-      success: false,
-      error: errorMessage,
-    };
   };
 
   return {
     photoPreview,
     skillLevel,
     technologies,
-    loading,
-    error,
+    loading: isUploadingPhoto || isCreatingUser,
+    error: null, // Error handling now done via toast in mutations
     setPhotoPreview,
     setSkillLevel,
     setTechnologies,
     clearData,
-    clearError: clearErrorMessage,
-    uploadPhoto,
+    uploadPhoto: uploadProfilePhoto,
     complete,
   };
 };

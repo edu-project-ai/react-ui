@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { useNavigate } from "react-router";
 import { Hub } from "aws-amplify/utils";
 import {
@@ -6,101 +6,100 @@ import {
   getCurrentUser,
   fetchUserAttributes,
 } from "aws-amplify/auth";
-import { useAppDispatch } from "@/hooks";
-import { setCurrentUser } from "@/features/authorization/store";
-import { useUser } from "@/features/authorization";
+import { useAppDispatch } from "@/hooks/useReduxHooks";
+import { setCurrentUser } from "@/features/authorization";
+import { checkUserProfileExists } from "@/features/authorization";
 import { createUserFromCognito } from "@/lib/cognito-user-mapper";
 
 export const CallbackPage: React.FC = () => {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
-  const { hasProfile } = useUser();
   const [error, setError] = useState<string | null>(null);
+  const isProcessing = useRef(false);
+
+  /**
+   * Centralized auth processing function
+   * Handles both Hub event and immediate check cases
+   */
+  const processAuthCallback = useCallback(async () => {
+    // Prevent duplicate processing
+    if (isProcessing.current) return;
+    isProcessing.current = true;
+
+    try {
+      const cognitoUser = await getCurrentUser();
+      const session = await fetchAuthSession();
+      const userAttributes = await fetchUserAttributes();
+      const idToken = session.tokens?.idToken?.toString();
+
+      if (!idToken) {
+        throw new Error("Failed to get ID token");
+      }
+
+      const user = createUserFromCognito(cognitoUser, userAttributes);
+      dispatch(setCurrentUser(user));
+
+      // Check if profile exists using RTK Query
+      const profileResult = await checkUserProfileExists();
+
+      if (profileResult.status === "found") {
+        navigate("/dashboard", { replace: true });
+      } else if (profileResult.status === "not_found") {
+        // New user - redirect to onboarding
+        navigate("/onboarding", { replace: true });
+      } else {
+        // Error checking profile - let user retry
+        setError("Failed to verify profile. Please try again.");
+        isProcessing.current = false;
+      }
+    } catch (err) {
+      console.error("Auth callback error:", err);
+      setError("Failed to complete sign in. Please try again.");
+      isProcessing.current = false;
+    }
+  }, [dispatch, navigate]);
 
   useEffect(() => {
-    const checkAuthState = async () => {
-      try {
-        const cognitoUser = await getCurrentUser();
-        const session = await fetchAuthSession();
-        const userAttributes = await fetchUserAttributes();
-        const idToken = session.tokens?.idToken?.toString();
+    // Immediate check in case Hub event already fired
+    processAuthCallback();
 
-        if (!idToken) {
-          throw new Error("Failed to get ID token");
-        }
-
-        const user = createUserFromCognito(cognitoUser, userAttributes);
-
-        dispatch(setCurrentUser(user));
-
-        // Check if profile exists using hook (service -> slice -> hook)
-        const profileCheck = await hasProfile();
-
-        if (!profileCheck.hasProfile) {
-          setTimeout(() => {
-            navigate("/onboarding/profile-photo", { replace: true });
-          }, 500);
-        } else {
-          setTimeout(() => {
-            navigate("/dashboard", { replace: true });
-          }, 500);
-        }
-      } catch {
-        // Silent error - Hub might still trigger
-      }
-    };
-
-    const timer = setTimeout(() => {
-      checkAuthState();
-    }, 1000);
-
+    // Subscribe to Hub events for OAuth redirect
     const unsubscribe = Hub.listen("auth", async ({ payload }) => {
       switch (payload.event) {
         case "signInWithRedirect":
-          try {
-            const cognitoUser = await getCurrentUser();
-            const session = await fetchAuthSession();
-            const userAttributes = await fetchUserAttributes();
-            const idToken = session.tokens?.idToken?.toString();
-
-            if (!idToken) {
-              throw new Error("Failed to get ID token");
-            }
-
-            const user = createUserFromCognito(cognitoUser, userAttributes);
-
-            dispatch(setCurrentUser(user));
-
-            // Check if profile exists using hook (service -> slice -> hook)
-            const profileCheck = await hasProfile();
-
-            if (!profileCheck.hasProfile) {
-              navigate("/onboarding/profile-photo", { replace: true });
-            } else {
-              navigate("/dashboard", { replace: true });
-            }
-          } catch {
-            setError("Failed to complete Google sign in");
-            setTimeout(() => navigate("/login"), 3000);
-          }
+          processAuthCallback();
           break;
 
         case "signInWithRedirect_failure":
           setError("Google sign in failed. Please try again.");
-          setTimeout(() => navigate("/login"), 3000);
           break;
 
         case "customOAuthState":
-          // Silent handling
+          // Silent handling for custom state
           break;
       }
     });
 
     return () => {
-      clearTimeout(timer);
       unsubscribe();
     };
-  }, [navigate, dispatch, hasProfile]);
+  }, [processAuthCallback]);
+
+  /**
+   * Handle manual retry
+   */
+  const handleRetry = () => {
+    setError(null);
+    isProcessing.current = false;
+    processAuthCallback();
+  };
+
+  /**
+   * Navigate back to login
+   */
+  const handleBackToLogin = () => {
+    navigate("/login", { replace: true });
+  };
 
   if (error) {
     return (
@@ -124,10 +123,21 @@ export const CallbackPage: React.FC = () => {
           <h2 className="text-2xl font-bold text-foreground mb-2">
             Authentication Failed
           </h2>
-          <p className="text-muted-foreground">{error}</p>
-          <p className="text-sm text-muted-foreground/70 mt-2">
-            Redirecting to login page...
-          </p>
+          <p className="text-muted-foreground mb-4">{error}</p>
+          <div className="flex gap-3 justify-center">
+            <button
+              onClick={handleRetry}
+              className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
+            >
+              Try Again
+            </button>
+            <button
+              onClick={handleBackToLogin}
+              className="px-4 py-2 bg-secondary text-secondary-foreground rounded-lg hover:bg-secondary/80 transition-colors"
+            >
+              Back to Login
+            </button>
+          </div>
         </div>
       </div>
     );
@@ -149,3 +159,4 @@ export const CallbackPage: React.FC = () => {
 };
 
 export default CallbackPage;
+

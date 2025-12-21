@@ -1,2 +1,10 @@
-export * from "./components";
+export { WelcomeHeader } from "./components/WelcomeHeader";
+export { ActivePathCard } from "./components/ActivePathCard";
+export { PathCard } from "./components/PathCard";
+export { StatsGrid } from "./components/StatsGrid";
+export { QuickActions } from "./components/QuickActions";
+export { RecentActivity } from "./components/RecentActivity";
+export { EmptyState } from "./components/EmptyState";
+export { ActivityCalendar } from "./components/ActivityCalendar";
+export { StatCard } from "./components/StatCard";
 export { DashboardPage } from "./DashboardPage";

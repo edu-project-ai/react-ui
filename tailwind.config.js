@@ -25,6 +25,17 @@ module.exports = {
         primary: {
           DEFAULT: "hsl(var(--primary))",
           foreground: "hsl(var(--primary-foreground))",
+          50: "hsl(var(--primary-50, 210 100% 97%))",
+          100: "hsl(var(--primary-100, 210 100% 94%))",
+          200: "hsl(var(--primary-200, 210 100% 88%))",
+          300: "hsl(var(--primary-300, 210 100% 78%))",
+          400: "hsl(var(--primary-400, 210 100% 65%))",
+          500: "hsl(var(--primary-500, 210 100% 55%))",
+          600: "hsl(var(--primary-600, 210 100% 45%))",
+          700: "hsl(var(--primary-700, 210 100% 38%))",
+          800: "hsl(var(--primary-800, 210 100% 30%))",
+          900: "hsl(var(--primary-900, 210 100% 22%))",
+          950: "hsl(var(--primary-950, 210 100% 14%))",
         },
         secondary: {
           DEFAULT: "hsl(var(--secondary))",

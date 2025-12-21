@@ -1,5 +1,7 @@
-import { PageHero, CTABanner } from "@/components/shared";
-import { ContactForm, ContactInfo } from "./components";
+import PageHero from "@/components/shared/PageHero/PageHero";
+import CTABanner from "@/components/shared/CTABanner/CTABanner";
+import ContactForm from "./components/ContactForm";
+import ContactInfo from "./components/ContactInfo";
 
 export const ContactPage = () => {
   return (
