@@ -6,6 +6,7 @@ import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { cn } from "@/lib/utils";
 import { toast } from "react-hot-toast";
 import { fetchUserAttributes } from "aws-amplify/auth";
+import { useAppSelector } from "@/hooks/useReduxHooks";
 import {
   TECH_CATEGORIES,
   TECHNOLOGY_LABELS,
@@ -25,6 +26,9 @@ export const TechnologiesPage = () => {
     clearData,
     complete,
   } = useOnboarding();
+  
+  // Отримуємо currentUser з Redux (вже має правильний email з JWT токена)
+  const currentUser = useAppSelector((state) => state.user?.currentUser);
 
   const [selectedTechs, setSelectedTechs] = useState<Set<Technology>>(
     new Set(savedTechnologies)
@@ -60,23 +64,24 @@ export const TechnologiesPage = () => {
     saveTechnologies(Array.from(selectedTechs));
 
     try {
-      // Get user attributes from AWS Cognito
+      // Отримуємо атрибути з Cognito для firstName, lastName, displayName
       const attributes = await fetchUserAttributes();
 
-      if (
-        !attributes.email ||
-        !attributes.given_name ||
-        !attributes.family_name ||
-        !attributes.name
-      ) {
-        throw new Error("Missing required user attributes");
+      // Використовуємо currentUser з Redux як fallback
+      // Це особливо важливо для Google OAuth, де атрибути можуть бути відсутні
+      const firstName = (attributes.given_name || currentUser?.firstName || "").trim();
+      const lastName = (attributes.family_name || currentUser?.lastName || "").trim();
+      const displayName = (attributes.name || currentUser?.displayName || `${firstName} ${lastName}`.trim()).trim();
+
+      if (!firstName || !displayName) {
+        throw new Error("Missing required user information");
       }
 
       // Create user profile with all onboarding data
       const profileResult = await complete({
-        firstName: attributes.given_name,
-        lastName: attributes.family_name,
-        displayName: attributes.name,
+        firstName,
+        lastName,
+        displayName,
         photoFile: photoFile || null,
         programmingLevel: (skillLevel || "Beginner").toLowerCase(),
         programmingTechnologies: Array.from(selectedTechs).map(

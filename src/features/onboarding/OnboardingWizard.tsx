@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { toast } from "react-hot-toast";
 import { fetchUserAttributes } from "aws-amplify/auth";
 import { OnboardingLayout } from "@/components/layout/OnboardingLayout/OnboardingLayout";
+import { useAppSelector } from "@/hooks/useReduxHooks";
 
 import { PhotoStep } from "./steps/PhotoStep";
 import { SkillLevelStep } from "./steps/SkillLevelStep";
@@ -26,6 +27,9 @@ const STEPS = [
 export const OnboardingWizard = () => {
   const navigate = useNavigate();
   const { complete, clearData, loading } = useOnboarding();
+  
+  // Отримуємо currentUser з Redux (вже має правильний email з JWT токена)
+  const currentUser = useAppSelector((state) => state.user?.currentUser);
   
   const [currentStep, setCurrentStep] = useState(1);
   const [wizardState, setWizardState] = useState<WizardState>({
@@ -54,16 +58,23 @@ export const OnboardingWizard = () => {
     }
 
     try {
+      // Отримуємо атрибути з Cognito для firstName, lastName, displayName
       const attributes = await fetchUserAttributes();
 
-      if (!attributes.email || !attributes.given_name || !attributes.family_name || !attributes.name) {
-        throw new Error("Missing required user attributes");
+      // Використовуємо currentUser з Redux як fallback
+      // Це особливо важливо для Google OAuth, де атрибути можуть бути відсутні
+      const firstName = (attributes.given_name || currentUser?.firstName || "").trim();
+      const lastName = (attributes.family_name || currentUser?.lastName || "").trim();
+      const displayName = (attributes.name || currentUser?.displayName || `${firstName} ${lastName}`.trim()).trim();
+
+      if (!firstName || !displayName) {
+        throw new Error("Missing required user information");
       }
 
       const profileResult = await complete({
-        firstName: attributes.given_name,
-        lastName: attributes.family_name,
-        displayName: attributes.name,
+        firstName,
+        lastName,
+        displayName,
         photoFile: wizardState.photoFile,
         programmingLevel: (wizardState.skillLevel || "Beginner").toLowerCase(),
         programmingTechnologies: wizardState.technologies.map(
@@ -82,7 +93,7 @@ export const OnboardingWizard = () => {
       console.error("Failed to create profile:", error);
       toast.error("Failed to complete setup. Please try again.");
     }
-  }, [wizardState, complete, clearData, navigate]);
+  }, [wizardState, complete, clearData, navigate, currentUser]);
 
   const stepConfig = STEPS[currentStep - 1];
 

@@ -200,6 +200,14 @@ const AuthRedirector: FC<AuthRedirectorProps> = ({ children }) => {
           />
         );
       }
+      return (
+        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background to-primary/5">
+          <div className="text-center">
+            <Spinner size="lg" className="mx-auto mb-4" />
+            <p className="text-muted-foreground">Checking profile...</p>
+          </div>
+        </div>
+      );
     }
   }
 

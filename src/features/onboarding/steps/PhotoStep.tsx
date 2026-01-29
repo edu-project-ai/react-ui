@@ -1,7 +1,10 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { toast } from "react-hot-toast";
 import type { WizardState } from "../OnboardingWizard";
+
+const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB in bytes
 
 interface PhotoStepProps {
   state: WizardState;
@@ -12,19 +15,48 @@ interface PhotoStepProps {
 
 export const PhotoStep = ({ state, onUpdate, onNext, onSkip }: PhotoStepProps) => {
   const [isDragging, setIsDragging] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+
+  const processFile = (file: File) => {
+    // Validate file type
+    if (!file.type.startsWith("image/")) {
+      toast.error("Please select an image file (PNG, JPG, or GIF)");
+      return;
+    }
+
+    // Validate file size
+    if (file.size > MAX_FILE_SIZE) {
+      toast.error("File size must be less than 5MB");
+      return;
+    }
+
+    setIsLoading(true);
+    const reader = new FileReader();
+
+    reader.onloadend = () => {
+      setIsLoading(false);
+      onUpdate({
+        photoFile: file,
+        photoPreview: reader.result as string,
+      });
+    };
+
+    reader.onerror = () => {
+      setIsLoading(false);
+      toast.error("Failed to read file. Please try another image.");
+      console.error("FileReader error:", reader.error);
+    };
+
+    reader.readAsDataURL(file);
+  };
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        onUpdate({
-          photoFile: file,
-          photoPreview: reader.result as string,
-        });
-      };
-      reader.readAsDataURL(file);
+      processFile(file);
     }
+    // Reset input to allow selecting the same file again
+    event.target.value = "";
   };
 
   const handleDragOver = (e: React.DragEvent) => {
@@ -41,15 +73,8 @@ export const PhotoStep = ({ state, onUpdate, onNext, onSkip }: PhotoStepProps) =
     setIsDragging(false);
 
     const file = e.dataTransfer.files?.[0];
-    if (file && file.type.startsWith("image/")) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        onUpdate({
-          photoFile: file,
-          photoPreview: reader.result as string,
-        });
-      };
-      reader.readAsDataURL(file);
+    if (file) {
+      processFile(file);
     }
   };
 
@@ -159,17 +184,18 @@ export const PhotoStep = ({ state, onUpdate, onNext, onSkip }: PhotoStepProps) =
           onClick={handleSkip}
           className="flex-1"
           type="button"
+          disabled={isLoading}
         >
           Skip for now
         </Button>
         <Button
           variant="primary"
           onClick={handleNext}
-          disabled={!state.photoPreview}
+          disabled={!state.photoPreview || isLoading}
           className="flex-1"
           type="button"
         >
-          Continue
+          {isLoading ? "Loading..." : "Continue"}
         </Button>
       </div>
     </div>

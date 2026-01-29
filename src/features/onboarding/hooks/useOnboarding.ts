@@ -76,15 +76,20 @@ export const useOnboarding = () => {
 
   /**
    * Complete onboarding by creating user profile using RTK Query
+   * @param data - User profile data
+   * @param options.clearOnError - Clear onboarding state on error (default: true)
    */
-  const complete = async (data: {
-    firstName: string;
-    lastName: string;
-    displayName: string;
-    photoFile: File | null;
-    programmingLevel: string;
-    programmingTechnologies: string[];
-  }) => {
+  const complete = async (
+    data: {
+      firstName: string;
+      lastName: string;
+      displayName: string;
+      photoFile: File | null;
+      programmingLevel: string;
+      programmingTechnologies: string[];
+    },
+    options: { clearOnError?: boolean } = { clearOnError: true }
+  ) => {
     try {
       if (!currentUserEmail) {
         throw new Error("User email not found");
@@ -117,6 +122,12 @@ export const useOnboarding = () => {
       const errorMessage = "Failed to complete onboarding";
       toast.error(errorMessage);
       console.error("Complete onboarding error:", error);
+      
+      // Clear state on error to prevent stale data issues
+      if (options.clearOnError) {
+        dispatch(clearOnboardingData());
+      }
+      
       return {
         success: false,
         error: errorMessage,

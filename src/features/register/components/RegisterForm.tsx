@@ -92,7 +92,7 @@ export default function RegisterForm() {
           navigate("/dashboard");
         } else if (profileResult.status === "not_found") {
           toast.success("Account created! Complete your profile...");
-          navigate("/onboarding/profile-photo");
+          navigate("/onboarding");
         } else {
           toast.error("Failed to verify profile. Please try again.");
         }
@@ -113,7 +113,7 @@ export default function RegisterForm() {
         if (profileResult.status === "found") {
           navigate("/dashboard");
         } else if (profileResult.status === "not_found") {
-          navigate("/onboarding/profile-photo");
+          navigate("/onboarding");
         } else {
           toast.error("Failed to verify profile. Please try again.");
         }
@@ -123,7 +123,7 @@ export default function RegisterForm() {
         if (profileResult.status === "found") {
           navigate("/dashboard");
         } else if (profileResult.status === "not_found") {
-          navigate("/onboarding/profile-photo");
+          navigate("/onboarding");
         } else {
           toast.error("Failed to verify profile. Please try again.");
         }

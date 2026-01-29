@@ -50,7 +50,7 @@ export default function LoginForm() {
       const profileCheck = await hasProfile();
 
       navigate(
-        profileCheck.hasProfile ? "/dashboard" : "/onboarding/profile-photo"
+        profileCheck.hasProfile ? "/dashboard" : "/onboarding"
       );
     } catch (error: unknown) {
       console.error("Unexpected login error:", error);
