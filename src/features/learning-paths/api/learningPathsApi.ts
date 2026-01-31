@@ -62,50 +62,26 @@ export const learningPathsApi = apiSlice.injectEndpoints({
     updateTaskCompletion: builder.mutation<
       TaskCompletionResponse,
       { 
-        learningPathId: string; 
-        data: TaskCompletionRequest;
-        // Optional: ID used in the cache key if different from data.checkpointId (e.g. 'cp-1' vs UUID)
-        cacheCheckpointId?: string; 
+        learningPathId: string;
+        itemId: string;
+        data: { completed: boolean };
       }
     >({
-      query: ({ learningPathId, data }) => ({
-        url: `/api/learning-paths/${learningPathId}/tasks/completion`,
+      query: ({ learningPathId, itemId, data }) => ({
+        url: `/api/learning-paths/${learningPathId}/items/${itemId}/completion`,
         method: "PUT",
         body: data,
       }),
-      async onQueryStarted({ learningPathId, data, cacheCheckpointId }, { dispatch, queryFulfilled }) {
-        // Optimistic update for getCheckpoint
-        // We try to update both the data.checkpointId (UUID) and cacheCheckpointId (e.g. cp-1) if provided
-        const checkpointIdsToUpdate = [data.checkpointId];
-        if (cacheCheckpointId && cacheCheckpointId !== data.checkpointId) {
-          checkpointIdsToUpdate.push(cacheCheckpointId);
-        }
-
-        const patchResults = checkpointIdsToUpdate.map(checkpointId => 
-          dispatch(
-            learningPathsApi.util.updateQueryData(
-              "getCheckpoint",
-              { learningPathId, checkpointId },
-              (draft) => {
-                const task = draft.tasks.find((t) => t.id === data.taskId);
-                if (task) {
-                  task.completed = data.completed;
-                }
-              }
-            )
-          )
-        );
-
+      async onQueryStarted({ learningPathId, itemId, data }, { dispatch, queryFulfilled }) {
         try {
           await queryFulfilled;
         } catch {
-          patchResults.forEach(patch => patch.undo());
+          // Handle error
         }
       },
       // Invalidate all related caches after task completion
-      invalidatesTags: (_result, _error, { learningPathId, data }) => [
+      invalidatesTags: (_result, _error, { learningPathId }) => [
         { type: "LearningPath", id: learningPathId },
-        { type: "LearningPath", id: `${learningPathId}-${data.checkpointId}` },
         { type: "LearningPath", id: "LIST" },
       ],
     }),

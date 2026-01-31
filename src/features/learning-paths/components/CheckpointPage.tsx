@@ -2,8 +2,8 @@ import { memo } from "react";
 import { Link, useParams } from "react-router-dom";
 import { useGetCheckpointQuery } from "../api/learningPathsApi";
 import { Spinner } from "@/components/ui/spinner";
-import type { Task } from "../services/type";
-import { calculateCheckpointProgress } from "../utils/progress-helpers";
+import type { LearningItem } from "../services/type";
+import { calculateCheckpointProgressFromItems } from "../utils/progress-helpers";
 import { ProgressBar } from "./ProgressBar";
 import { TaskListItem } from "./TaskListItem";
 
@@ -99,18 +99,11 @@ ErrorState.displayName = "ErrorState";
 // ============================================================================
 
 interface MetadataBadgesProps {
-  estimatedDays?: number;
   totalTasks: number;
 }
 
-const MetadataBadges = memo(({ estimatedDays, totalTasks }: MetadataBadgesProps) => (
+const MetadataBadges = memo(({ totalTasks }: MetadataBadgesProps) => (
   <div className="flex flex-wrap gap-6 mb-8">
-    {estimatedDays && (
-      <div className="flex items-center text-muted-foreground bg-muted px-3 py-1.5 rounded-lg">
-        <ClockIcon />
-        <span className="font-medium">{estimatedDays} days estimated</span>
-      </div>
-    )}
     <div className="flex items-center text-muted-foreground bg-muted px-3 py-1.5 rounded-lg">
       <TasksIcon />
       <span className="font-medium">{totalTasks} tasks</span>
@@ -126,7 +119,6 @@ MetadataBadges.displayName = "MetadataBadges";
 interface CheckpointHeaderProps {
   title: string;
   description: string;
-  estimatedDays?: number;
   totalTasks: number;
   completedTasks: number;
   progressPercentage: number;
@@ -135,7 +127,6 @@ interface CheckpointHeaderProps {
 const CheckpointHeader = memo(({
   title,
   description,
-  estimatedDays,
   totalTasks,
   completedTasks,
   progressPercentage,
@@ -151,7 +142,7 @@ const CheckpointHeader = memo(({
         </div>
       </div>
 
-      <MetadataBadges estimatedDays={estimatedDays} totalTasks={totalTasks} />
+      <MetadataBadges totalTasks={totalTasks} />
 
       {/* Progress Bar */}
       <div className="bg-muted/50 rounded-xl p-5 border border-border">
@@ -176,7 +167,7 @@ CheckpointHeader.displayName = "CheckpointHeader";
 // ============================================================================
 
 interface TasksListProps {
-  tasks: Task[];
+  items: LearningItem[];
   learningPathId: string;
   checkpointId: string;
   realCheckpointId: string;
@@ -184,13 +175,13 @@ interface TasksListProps {
 }
 
 const TasksList = memo(({
-  tasks,
+  items,
   learningPathId,
   checkpointId,
   realCheckpointId,
   checkpointTitle,
 }: TasksListProps) => {
-  if (tasks.length === 0) {
+  if (items.length === 0) {
     return (
       <div className="bg-card rounded-xl p-12 text-center border border-dashed border-border">
         <p className="text-muted-foreground text-lg">
@@ -202,10 +193,10 @@ const TasksList = memo(({
 
   return (
     <div className="space-y-4">
-      {tasks.map((task, index) => (
+      {items.map((item, index) => (
         <TaskListItem
-          key={task.id}
-          task={task}
+          key={item.id}
+          task={item}
           index={index}
           learningPathId={learningPathId}
           checkpointId={checkpointId}
@@ -249,7 +240,7 @@ export const CheckpointPage = () => {
     completed: completedTasks,
     total: totalTasks,
     percentage: progressPercentage,
-  } = calculateCheckpointProgress(checkpoint.tasks);
+  } = calculateCheckpointProgressFromItems(checkpoint.items);
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-4xl">
@@ -265,8 +256,7 @@ export const CheckpointPage = () => {
 
         <CheckpointHeader
           title={checkpoint.title}
-          description={checkpoint.description}
-          estimatedDays={checkpoint.estimatedDays}
+          description={checkpoint.description || ''}
           totalTasks={totalTasks}
           completedTasks={completedTasks}
           progressPercentage={progressPercentage}
@@ -283,7 +273,7 @@ export const CheckpointPage = () => {
         </h2>
 
         <TasksList
-          tasks={checkpoint.tasks}
+          items={checkpoint.items}
           learningPathId={id!}
           checkpointId={checkpointId!}
           realCheckpointId={checkpoint.id}

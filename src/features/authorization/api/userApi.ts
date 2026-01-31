@@ -106,7 +106,7 @@ export const userApi = apiSlice.injectEndpoints({
       { id: string; data: UpdatePreferredTechnologiesDto }
     >({
       query: ({ id, data }) => ({
-        url: `/api/users/${id}/preferred-technologies`,
+        url: `/api/users/${id}/programming-technologies`,
         method: "PUT",
         body: data,
       }),

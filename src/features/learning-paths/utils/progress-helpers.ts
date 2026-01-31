@@ -1,4 +1,4 @@
-import type { LearningPathProgress, Task, Checkpoint } from "../services/type";
+import type { LearningPathProgress, Task, Checkpoint, LearningItem } from "../services/type";
 
 /**
  * Calculate progress percentage from completed and total tasks
@@ -43,11 +43,11 @@ export const getProgressTextColor = (
  * Check if checkpoint is completed
  */
 export const isCheckpointCompleted = (checkpoint: Checkpoint): boolean => {
-  if (checkpoint.completed !== undefined) {
-    return checkpoint.completed;
+  if (checkpoint.isCompleted !== undefined) {
+    return checkpoint.isCompleted;
   }
-  if (checkpoint.tasks && checkpoint.tasks.length > 0) {
-    return checkpoint.tasks.every((task) => task.completed);
+  if (checkpoint.items && checkpoint.items.length > 0) {
+    return checkpoint.items.every((item) => item.isCompleted);
   }
   return false;
 };
@@ -60,6 +60,18 @@ export const calculateCheckpointProgress = (
 ): { completed: number; total: number; percentage: number } => {
   const total = tasks.length;
   const completed = tasks.filter((task) => task.completed).length;
+  const percentage = calculateProgressPercentage(completed, total);
+  return { completed, total, percentage };
+};
+
+/**
+ * Calculate checkpoint progress from items (new API)
+ */
+export const calculateCheckpointProgressFromItems = (
+  items: LearningItem[]
+): { completed: number; total: number; percentage: number } => {
+  const total = items.length;
+  const completed = items.filter((item) => item.isCompleted).length;
   const percentage = calculateProgressPercentage(completed, total);
   return { completed, total, percentage };
 };
