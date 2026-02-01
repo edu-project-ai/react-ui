@@ -2,10 +2,7 @@ import { memo } from "react";
 import { useParams } from "react-router-dom";
 import { useGetCodingTaskQuery } from "../../api/learningPathsApi";
 import type { CodeItem } from "../../services/type";
-
-// ============================================================================
-// Icon Components
-// ============================================================================
+import Markdown from 'react-markdown'
 
 const CodeIcon = memo(() => (
   <svg
@@ -24,19 +21,10 @@ const CodeIcon = memo(() => (
 ));
 CodeIcon.displayName = "CodeIcon";
 
-// ============================================================================
-// Main Component
-// ============================================================================
-
 export interface CodingDetailProps {
   item: CodeItem;
 }
 
-/**
- * Detail view component for Coding Task learning items.
- * Displays task description and definition of done.
- * Code editor integration is planned for future implementation.
- */
 export const CodingDetail = memo(({ item }: CodingDetailProps) => {
   const { id: learningPathId } = useParams<{ id: string }>();
   const {
@@ -89,18 +77,15 @@ export const CodingDetail = memo(({ item }: CodingDetailProps) => {
           </div>
         )}
 
-        {/* Task Description */}
         {codingTask && (
           <div className="space-y-6">
-            {/* Description */}
             <div className="bg-amber-50/50 dark:bg-amber-900/10 rounded-lg p-6 border border-amber-200 dark:border-amber-800">
               <h3 className="text-lg font-semibold text-foreground mb-3">Опис завдання</h3>
-              <p className="text-sm text-foreground leading-relaxed whitespace-pre-wrap">
-                {codingTask.description}
-              </p>
+              <div className="prose dark:prose-invert max-w-none text-sm leading-relaxed">
+                <Markdown>{codingTask.description}</Markdown>
+              </div>
             </div>
 
-            {/* Definition of Done */}
             {codingTask.definitionOfDone && codingTask.definitionOfDone.length > 0 && (
               <div className="bg-green-50/50 dark:bg-green-900/10 rounded-lg p-6 border border-green-200 dark:border-green-800">
                 <h3 className="text-lg font-semibold text-foreground mb-3">Критерії виконання</h3>
@@ -115,7 +100,6 @@ export const CodingDetail = memo(({ item }: CodingDetailProps) => {
               </div>
             )}
 
-            {/* Dependencies */}
             {codingTask.dependencies && codingTask.dependencies.length > 0 && (
               <div className="bg-blue-50/50 dark:bg-blue-900/10 rounded-lg p-6 border border-blue-200 dark:border-blue-800">
                 <h3 className="text-lg font-semibold text-foreground mb-3">Необхідні бібліотеки</h3>
@@ -132,7 +116,6 @@ export const CodingDetail = memo(({ item }: CodingDetailProps) => {
               </div>
             )}
 
-            {/* Code Editor Placeholder */}
             <div className="bg-muted/30 rounded-lg border border-dashed border-border overflow-hidden">
               <div className="bg-muted/50 px-4 py-2 border-b border-border">
                 <span className="text-xs font-mono text-muted-foreground">

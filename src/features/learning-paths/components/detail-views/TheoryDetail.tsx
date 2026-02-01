@@ -1,12 +1,8 @@
 import { memo } from "react";
-import ReactMarkdown from "react-markdown";
+import Markdown from 'react-markdown'
 import { useParams } from "react-router-dom";
 import { useGetTheoryResourceQuery } from "../../api/learningPathsApi";
 import type { TheoryItem } from "../../services/type";
-
-// ============================================================================
-// Icon Components
-// ============================================================================
 
 const BookIcon = memo(() => (
   <svg
@@ -24,19 +20,10 @@ const BookIcon = memo(() => (
   </svg>
 ));
 BookIcon.displayName = "BookIcon";
-
-// ============================================================================
-// Main Component
-// ============================================================================
-
 export interface TheoryDetailProps {
   item: TheoryItem;
 }
 
-/**
- * Detail view component for Theory learning items.
- * Displays reading content with lazy-loaded full content via Markdown.
- */
 export const TheoryDetail = memo(({ item }: TheoryDetailProps) => {
   const { id: learningPathId } = useParams<{ id: string }>();
   const {
@@ -51,7 +38,6 @@ export const TheoryDetail = memo(({ item }: TheoryDetailProps) => {
   return (
     <div className="bg-card rounded-xl shadow-sm border border-border overflow-hidden">
       <div className="p-6 md:p-8">
-        {/* Header */}
         <div className="flex items-center gap-3 mb-6">
           <div className="p-2 rounded-lg bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400">
             <BookIcon />
@@ -63,10 +49,8 @@ export const TheoryDetail = memo(({ item }: TheoryDetailProps) => {
           </div>
         </div>
 
-        {/* Title */}
         <h2 className="text-2xl font-bold text-foreground mb-4">{item.title}</h2>
 
-        {/* Summary */}
         {item.summary && (
           <div className="bg-blue-50/50 dark:bg-blue-900/10 rounded-lg p-4 border border-blue-200 dark:border-blue-800 mb-6">
             <p className="text-sm text-blue-900 dark:text-blue-100 leading-relaxed">
@@ -75,7 +59,6 @@ export const TheoryDetail = memo(({ item }: TheoryDetailProps) => {
           </div>
         )}
 
-        {/* Full Content (lazy loaded) */}
         {isLoading && (
           <div className="bg-muted/30 rounded-lg p-8 text-center border border-dashed border-border animate-pulse">
             <p className="text-muted-foreground">Loading content...</p>
@@ -89,10 +72,13 @@ export const TheoryDetail = memo(({ item }: TheoryDetailProps) => {
             </p>
           </div>
         )}
-
-        {theoryResource?.content && (
-          <div className="prose prose-sm dark:prose-invert max-w-none">
-            <ReactMarkdown>{theoryResource.content}</ReactMarkdown>
+        {(theoryResource?.content) && (
+          <div className="p-6 overflow-y-auto h-full">
+            <div className="prose prose-slate dark:prose-invert max-w-none">
+              <Markdown>
+                {theoryResource?.content ?? "*No content available*"}
+              </Markdown>
+            </div>
           </div>
         )}
 
