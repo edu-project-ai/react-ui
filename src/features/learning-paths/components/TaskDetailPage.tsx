@@ -2,6 +2,7 @@ import { useState, memo, useCallback } from "react";
 import { useParams, useLocation, useNavigate } from "react-router-dom";
 import { useGetCheckpointQuery as useGetCheckpointDetailsQuery } from "../api/learningPathsApi";
 import { useLearningPaths } from "../hooks/useLearningPaths";
+
 import { Spinner } from "@/components/ui/spinner";
 import type { LearningItem, Task } from "../services/type";
 import { LearningItemRenderer } from "./LearningItemRenderer";
@@ -350,6 +351,7 @@ export const TaskDetailPage = () => {
       setIsUpdating(false);
     }
   }, [item, legacyTask, effectiveCheckpointId, realCheckpointId, id, toggleTaskCompletion, itemCompleted]);
+
 
   // If checkpointId is missing we can't fetch the drill-down; show an error with a back action
   if (!effectiveCheckpointId) {

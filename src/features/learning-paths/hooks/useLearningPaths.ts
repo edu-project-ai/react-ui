@@ -105,12 +105,10 @@ export const useLearningPaths = () => {
     try {
       const result = await updateTaskMutation({
         learningPathId: params.learningPathId,
+        itemId: params.taskId,
         data: {
-          checkpointId: params.checkpointId,
-          taskId: params.taskId,
           completed: params.completed,
         },
-        cacheCheckpointId: params.cacheCheckpointId,
       }).unwrap();
 
       toast.success(

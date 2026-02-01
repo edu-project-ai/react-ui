@@ -124,6 +124,7 @@ export const learningPathsApi = apiSlice.injectEndpoints({
         { type: "LearningPath", id: `${learningPathId}-item-${itemId}` },
       ],
     }),
+
   }),
 });
 
