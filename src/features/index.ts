@@ -2,6 +2,7 @@
 export * from "./home";
 export * from "./dashboard";
 export * from "./learning-paths";
+export * from "./progress";
 
 // All page components
 export { HomePage } from "./home";
@@ -27,6 +28,7 @@ export {
   CheckpointPage,
   TaskDetailPage,
 } from "./learning-paths";
+export { ProgressPage } from "./progress";
 
 // Authorization feature
 export * from "./authorization";

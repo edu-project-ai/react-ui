@@ -25,6 +25,7 @@ import {
   LearningPathDetailPage,
   CheckpointPage,
   TaskDetailPage,
+  ProgressPage,
 } from "@/features";
 
 const BasicDataRouter = () => {
@@ -48,6 +49,7 @@ const BasicDataRouter = () => {
         {/* Private routes */}
         <Route path="/" Component={PrivateLayout}>
           <Route path="/dashboard" Component={DashboardPage} />
+          <Route path="/progress" Component={ProgressPage} />
           <Route path="/settings" Component={SettingsPage} />
           
           {/* Learning Paths routes */}
