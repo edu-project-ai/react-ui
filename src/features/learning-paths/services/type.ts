@@ -1,15 +1,48 @@
 /**
- * Learning Item model (replaces Task)
+ * Discriminator type for polymorphic learning items.
+ * MUST match Backend [JsonDerivedType] discriminators exactly.
  */
-export interface LearningItem {
+export type LearningItemType = 'Theory' | 'CodingTask' | 'Quiz';
+
+/**
+ * Base shared fields for all learning item types
+ */
+export interface BaseLearningItem {
   id: string;
   checkpointId: string;
   title: string;
-  type: string; // "Theory" | "Code" | "Quiz"
   order: number;
   isCompleted: boolean;
-  estimatedTime: number;
 }
+
+/**
+ * Theory item - reading/learning content
+ */
+export interface TheoryItem extends BaseLearningItem {
+  type: 'Theory';
+  summary: string | null;
+}
+
+/**
+ * Coding task item - programming exercises
+ */
+export interface CodeItem extends BaseLearningItem {
+  type: 'CodingTask';
+  programmingLanguage: string;
+}
+
+/**
+ * Quiz item - assessment questions
+ */
+export interface QuizItem extends BaseLearningItem {
+  type: 'Quiz';
+  questionsCount: number;
+}
+
+/**
+ * Discriminated union type for all learning items
+ */
+export type LearningItem = TheoryItem | CodeItem | QuizItem;
 
 /**
  * Task model (deprecated - use LearningItem)
@@ -165,3 +198,42 @@ export type CreateLearningPathResult = LearningPathResult<CreateLearningPathResp
  * Update task result
  */
 export type UpdateTaskResult = LearningPathResult<TaskCompletionResponse>;
+
+/**
+ * Theory Resource Detail (for lazy loading)
+ */
+export interface TheoryResourceDetail {
+  id: string;
+  learningItemId: string;
+  content: string | null;
+  summary: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/**
+ * Coding Task Detail (for lazy loading)
+ */
+export interface CodingTaskDetail {
+  id: string;
+  learningItemId: string;
+  description: string;
+  language: string;
+  initialCodeTemplate: string | null;
+  definitionOfDone: string[] | null;
+  validationType: string;
+  dependencies: string[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+/**
+ * Quiz Detail (for lazy loading)
+ */
+export interface QuizDetail {
+  id: string;
+  learningItemId: string;
+  question: string;
+  options: string[];
+}
+

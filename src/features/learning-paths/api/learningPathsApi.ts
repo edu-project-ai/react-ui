@@ -6,6 +6,9 @@ import type {
   TaskCompletionResponse,
   CreateLearningPathRequest,
   CreateLearningPathResponse,
+  TheoryResourceDetail,
+  CodingTaskDetail,
+  QuizDetail,
 } from "../services/type";
 
 /**
@@ -85,6 +88,42 @@ export const learningPathsApi = apiSlice.injectEndpoints({
         { type: "LearningPath", id: "LIST" },
       ],
     }),
+
+    // Get theory resource details (lazy loaded)
+    getTheoryResource: builder.query<
+      TheoryResourceDetail,
+      { learningPathId: string; itemId: string }
+    >({
+      query: ({ learningPathId, itemId }) =>
+        `/api/learning-paths/${learningPathId}/items/${itemId}/theory-resource`,
+      providesTags: (_result, _error, { learningPathId, itemId }) => [
+        { type: "LearningPath", id: `${learningPathId}-item-${itemId}` },
+      ],
+    }),
+
+    // Get coding task details (lazy loaded)
+    getCodingTask: builder.query<
+      CodingTaskDetail,
+      { learningPathId: string; itemId: string }
+    >({
+      query: ({ learningPathId, itemId }) =>
+        `/api/learning-paths/${learningPathId}/items/${itemId}/coding-task`,
+      providesTags: (_result, _error, { learningPathId, itemId }) => [
+        { type: "LearningPath", id: `${learningPathId}-item-${itemId}` },
+      ],
+    }),
+
+    // Get quiz details (lazy loaded)
+    getQuiz: builder.query<
+      QuizDetail,
+      { learningPathId: string; itemId: string }
+    >({
+      query: ({ learningPathId, itemId }) =>
+        `/api/learning-paths/${learningPathId}/items/${itemId}/quiz`,
+      providesTags: (_result, _error, { learningPathId, itemId }) => [
+        { type: "LearningPath", id: `${learningPathId}-item-${itemId}` },
+      ],
+    }),
   }),
 });
 
@@ -95,4 +134,7 @@ export const {
   useGetCheckpointQuery,
   useUpdateTaskCompletionMutation,
   useCreateLearningPathMutation,
+  useGetTheoryResourceQuery,
+  useGetCodingTaskQuery,
+  useGetQuizQuery,
 } = learningPathsApi;
