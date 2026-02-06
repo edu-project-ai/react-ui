@@ -1,7 +1,7 @@
 import { memo } from "react";
 import type { LearningItem } from "../services/type";
 import { TheoryDetail } from "./detail-views/TheoryDetail";
-import { CodingDetail } from "./detail-views/CodingDetail";
+import { CodingTaskIntroPage } from "./detail-views/CodingTaskIntroPage";
 import { QuizDetail } from "./detail-views/QuizDetail";
 
 // ============================================================================
@@ -33,7 +33,7 @@ export const LearningItemRenderer = memo(({ item }: LearningItemRendererProps) =
     case "Theory":
       return <TheoryDetail item={item} />;
     case "CodingTask":
-      return <CodingDetail item={item} />;
+      return <CodingTaskIntroPage item={item} />;
     case "Quiz":
       return <QuizDetail item={item} />;
     default:
@@ -43,3 +43,4 @@ export const LearningItemRenderer = memo(({ item }: LearningItemRendererProps) =
 });
 
 LearningItemRenderer.displayName = "LearningItemRenderer";
+

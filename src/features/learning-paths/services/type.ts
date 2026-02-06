@@ -223,6 +223,7 @@ export interface CodingTaskDetail {
   definitionOfDone: string[] | null;
   validationType: string;
   dependencies: string[];
+  estimatedTimeMinutes?: number;
   createdAt: string;
   updatedAt: string;
 }
