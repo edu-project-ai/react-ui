@@ -27,8 +27,6 @@ import {
   TaskDetailPage,
   ProgressPage,
 } from "@/features";
-import { CodingTaskIDEPage } from "@/features/learning-paths/components/detail-views";
-
 
 const BasicDataRouter = () => {
   const router = createBrowserRouter(
@@ -61,7 +59,6 @@ const BasicDataRouter = () => {
           <Route path="/learning-paths/:id/checkpoints/:checkpointId" Component={CheckpointPage} />
           <Route path="/learning-paths/:id/checkpoints/:checkpointId/tasks/:taskId" Component={TaskDetailPage} />
           <Route path="/learning-paths/:id/tasks/:taskId" Component={TaskDetailPage} />
-          <Route path="/learning-paths/:id/tasks/:taskId/ide" Component={CodingTaskIDEPage} />
         </Route>
     
         <Route path="*" Component={NotFound} />

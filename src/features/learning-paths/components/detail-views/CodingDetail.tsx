@@ -1,132 +1,139 @@
-import { useState, useEffect, useCallback, memo } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { memo } from "react";
+import { useParams } from "react-router-dom";
 import { useGetCodingTaskQuery } from "../../api/learningPathsApi";
 import type { CodeItem } from "../../services/type";
-import { useCodeSession } from "../../hooks/useCodeSession";
-import { IDELayout } from "../ide/IDELayout";
+import Markdown from 'react-markdown'
 
-export const CodingDetail = memo(({ item }: { item: CodeItem }) => {
+const CodeIcon = memo(() => (
+  <svg
+    className="w-5 h-5"
+    fill="none"
+    stroke="currentColor"
+    viewBox="0 0 24 24"
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth={2}
+      d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"
+    />
+  </svg>
+));
+CodeIcon.displayName = "CodeIcon";
+
+export interface CodingDetailProps {
+  item: CodeItem;
+}
+
+export const CodingDetail = memo(({ item }: CodingDetailProps) => {
   const { id: learningPathId } = useParams<{ id: string }>();
-  const navigate = useNavigate();
-
-  // Fetch task details
   const {
     data: codingTask,
-    // isLoading: isLoadingTask,
+    isLoading,
+    error,
   } = useGetCodingTaskQuery(
     { learningPathId: learningPathId!, itemId: item.id },
     { skip: !learningPathId }
   );
 
-  // Initialize Session
-  const { 
-    state: sessionState, 
-    session, 
-    isConnected, 
-    logs, 
-    error, 
-    runCode, 
-    clearLogs,
-    sendTerminalInput,
-    resizeTerminal,
-    setTerminalOutputHandler,
-  } = useCodeSession({
-    taskId: item.id,
-    autoStart: true,
-  });
-
-  // State for files
-  const [activeFile, setActiveFile] = useState<string | null>(null);
-  const [openFiles, setOpenFiles] = useState<string[]>([]);
-  const [files, setFiles] = useState<Map<string, string>>(new Map());
-
-  // Helper to get filename
-  const getFilename = useCallback((lang: string) => {
-      const extMap: Record<string, string> = {
-          "python": "py",
-          "javascript": "js",
-          "typescript": "ts",
-          "csharp": "cs",
-          "go": "go",
-          "java": "java"
-      };
-      const ext = extMap[lang.toLowerCase()] || "txt";
-      return `main.${ext}`;
-  }, []);
-
-  // Initialize Files when task loads
-  useEffect(() => {
-    if (codingTask) {
-      const filename = getFilename(item.programmingLanguage);
-      const initialFiles = new Map<string, string>();
-      initialFiles.set(filename, codingTask.initialCodeTemplate || "");
-      
-      setFiles(initialFiles);
-      
-      // Only set active if not already set (to preserve state if re-fetching? actually task shouldn't change)
-      setActiveFile(filename);
-      setOpenFiles([filename]);
-    }
-  }, [codingTask, item.programmingLanguage, getFilename]);
-
-  // Handlers
-  const handleFileChange = useCallback((fileName: string, content: string) => {
-    setFiles((prev) => {
-        const newFiles = new Map(prev);
-        newFiles.set(fileName, content);
-        return newFiles;
-    });
-  }, []);
-
-  const handleRunCode = useCallback(async () => {
-    if (sessionState !== "Ready" || !activeFile) return;
-    const code = files.get(activeFile) || "";
-    if (!code.trim()) return;
-
-    await runCode(code, item.programmingLanguage.toLowerCase());
-  }, [sessionState, activeFile, files, item.programmingLanguage, runCode]);
-
-  const handleGoBack = useCallback(() => {
-    navigate(-1);
-  }, [navigate]);
-
-  const handleFileSelect = useCallback((fileName: string) => {
-    setActiveFile(fileName);
-    if (!openFiles.includes(fileName)) {
-        setOpenFiles(prev => [...prev, fileName]);
-    }
-  }, [openFiles]);
-
-  const handleFileClose = useCallback((fileName: string) => {
-    setOpenFiles(prev => prev.filter(f => f !== fileName));
-    if (activeFile === fileName) {
-        setActiveFile(null);
-    }
-  }, [activeFile]);
-
   return (
-    <div className="fixed inset-0 z-50 bg-[#1e1e1e]">
-        <IDELayout
-            sessionState={sessionState}
-            session={session}
-            isConnected={isConnected}
-            logs={logs}
-            error={error}
-            files={files}
-            activeFile={activeFile}
-            openFiles={openFiles}
-            language={item.programmingLanguage}
-            onFileSelect={handleFileSelect}
-            onFileClose={handleFileClose}
-            onFileChange={handleFileChange}
-            onRunCode={handleRunCode}
-            onClearLogs={clearLogs}
-            onGoBack={handleGoBack}
-            taskTitle={item.title}
-            sendTerminalInput={sendTerminalInput}
-            resizeTerminal={resizeTerminal}
-            setTerminalOutputHandler={setTerminalOutputHandler}
-        />
+    <div className="bg-card rounded-xl shadow-sm border border-border overflow-hidden">
+      <div className="p-6 md:p-8">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400">
+              <CodeIcon />
+            </div>
+            <div>
+              <span className="text-xs font-medium uppercase tracking-wider text-amber-600 dark:text-amber-400">
+                Coding Task
+              </span>
+              <div className="flex items-center gap-2 mt-0.5">
+                <span className="text-sm font-medium text-foreground">
+                  {item.programmingLanguage}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Title */}
+        <h2 className="text-2xl font-bold text-foreground mb-6">{item.title}</h2>
+
+        {/* Loading State */}
+        {isLoading && (
+          <div className="bg-muted/30 rounded-lg p-8 text-center border border-dashed border-border animate-pulse">
+            <p className="text-muted-foreground">Loading task details...</p>
+          </div>
+        )}
+
+        {/* Error State */}
+        {error && (
+          <div className="bg-destructive/10 rounded-lg p-4 border border-destructive/20">
+            <p className="text-destructive text-sm">
+              Failed to load coding task details. Please try again.
+            </p>
+          </div>
+        )}
+
+        {codingTask && (
+          <div className="space-y-6">
+            <div className="bg-amber-50/50 dark:bg-amber-900/10 rounded-lg p-6 border border-amber-200 dark:border-amber-800">
+              <h3 className="text-lg font-semibold text-foreground mb-3">Опис завдання</h3>
+              <div className="prose dark:prose-invert max-w-none text-sm leading-relaxed">
+                <Markdown>{codingTask.description}</Markdown>
+              </div>
+            </div>
+
+            {codingTask.definitionOfDone && codingTask.definitionOfDone.length > 0 && (
+              <div className="bg-green-50/50 dark:bg-green-900/10 rounded-lg p-6 border border-green-200 dark:border-green-800">
+                <h3 className="text-lg font-semibold text-foreground mb-3">Критерії виконання</h3>
+                <ul className="space-y-2">
+                  {codingTask.definitionOfDone.map((item, index) => (
+                    <li key={index} className="flex items-start gap-2 text-sm text-foreground">
+                      <span className="text-green-600 dark:text-green-400 mt-0.5">✓</span>
+                      <span>{item}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {codingTask.dependencies && codingTask.dependencies.length > 0 && (
+              <div className="bg-blue-50/50 dark:bg-blue-900/10 rounded-lg p-6 border border-blue-200 dark:border-blue-800">
+                <h3 className="text-lg font-semibold text-foreground mb-3">Необхідні бібліотеки</h3>
+                <div className="flex flex-wrap gap-2">
+                  {codingTask.dependencies.map((dep, index) => (
+                    <code
+                      key={index}
+                      className="text-xs bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200 px-2 py-1 rounded"
+                    >
+                      {dep}
+                    </code>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div className="bg-muted/30 rounded-lg border border-dashed border-border overflow-hidden">
+              <div className="bg-muted/50 px-4 py-2 border-b border-border">
+                <span className="text-xs font-mono text-muted-foreground">
+                  {item.programmingLanguage.toLowerCase()}.code
+                </span>
+              </div>
+              <div className="p-8 text-center">
+                <p className="text-muted-foreground mb-2">
+                  <span className="text-lg">🚧</span> Редактор коду в процесі розробки
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Незабаром тут буде інтерактивний редактор для написання та тестування коду
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 });
