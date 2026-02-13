@@ -2,7 +2,7 @@ import { memo } from "react";
 import { useParams } from "react-router-dom";
 import { useGetCodingTaskQuery } from "../../api/learningPathsApi";
 import type { CodeItem } from "../../services/type";
-import { Terminal } from "@/features/interactive-ide/components/terminal";
+import { Terminal } from "@/features/ide/components/terminal";
 
 const CodeIcon = memo(() => (
   <svg

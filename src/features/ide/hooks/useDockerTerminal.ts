@@ -3,7 +3,7 @@ import { Terminal } from 'xterm';
 import { FitAddon } from 'xterm-addon-fit';
 import { AttachAddon } from '@xterm/addon-attach';
 import 'xterm/css/xterm.css';
-import { useStartTaskSessionMutation } from '../../ide/api/codeExecutionApi';
+import { useStartTaskSessionMutation } from '../api/codeExecutionApi';
 
 // ─────────────────────────────────────────────
 // Types
