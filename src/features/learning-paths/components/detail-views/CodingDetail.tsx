@@ -2,7 +2,7 @@ import { memo } from "react";
 import { useParams } from "react-router-dom";
 import { useGetCodingTaskQuery } from "../../api/learningPathsApi";
 import type { CodeItem } from "../../services/type";
-import Markdown from 'react-markdown'
+import { Terminal } from "@/features/interactive-ide/components/terminal";
 
 const CodeIcon = memo(() => (
   <svg
@@ -21,25 +21,80 @@ const CodeIcon = memo(() => (
 ));
 CodeIcon.displayName = "CodeIcon";
 
+const LoadingSpinner = memo(() => (
+  <div className="flex items-center justify-center space-x-2">
+    <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+  </div>
+));
+LoadingSpinner.displayName = "LoadingSpinner";
+
 export interface CodingDetailProps {
   item: CodeItem;
 }
 
 export const CodingDetail = memo(({ item }: CodingDetailProps) => {
   const { id: learningPathId } = useParams<{ id: string }>();
+
   const {
     data: codingTask,
-    isLoading,
-    error,
+    isLoading: isLoadingTask,
+    error: taskError,
   } = useGetCodingTaskQuery(
     { learningPathId: learningPathId!, itemId: item.id },
     { skip: !learningPathId }
   );
 
+  // TERMINAL TEST MODE - Remove/Comment this section once Monaco Editor is ready
+  // For now, we show ONLY the terminal to test the backend connection
+  return (
+    <div className="bg-card rounded-xl shadow-sm border border-border overflow-hidden h-screen">
+      {/* Terminal Test Header */}
+      <div className="p-4 border-b border-border bg-muted/30">
+        <div className="flex items-center gap-3">
+          <div className="p-2 rounded-lg bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400">
+            <CodeIcon />
+          </div>
+          <div>
+            <h2 className="text-lg font-semibold text-foreground">{item.title}</h2>
+            <span className="text-xs text-muted-foreground">
+              Testing Interactive Session: {item.programmingLanguage}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* Terminal Container with Height */}
+      <div className="relative" style={{ height: 'calc(100vh - 120px)' }}>
+        {isLoadingTask ? (
+          <div className="absolute inset-0 flex items-center justify-center bg-background">
+            <div className="text-center space-y-4">
+              <LoadingSpinner />
+              <p className="text-sm text-muted-foreground">
+                Loading task details...
+              </p>
+            </div>
+          </div>
+        ) : taskError ? (
+          <div className="absolute inset-0 flex items-center justify-center bg-background">
+            <div className="text-center space-y-4">
+              <p className="text-sm text-destructive">
+                Failed to load coding task details. Please try again.
+              </p>
+            </div>
+          </div>
+        ) : codingTask?.id ? (
+          // New WebSocket terminal — connects directly to Go proxy
+          <Terminal taskId={codingTask.id} />
+        ) : null}
+      </div>
+    </div>
+  );
+
+  /* COMMENTED OUT: Original task description view - restore when adding Monaco Editor
   return (
     <div className="bg-card rounded-xl shadow-sm border border-border overflow-hidden">
       <div className="p-6 md:p-8">
-        {/* Header */}
+        {/* Header *\/}
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
             <div className="p-2 rounded-lg bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400">
@@ -58,17 +113,17 @@ export const CodingDetail = memo(({ item }: CodingDetailProps) => {
           </div>
         </div>
 
-        {/* Title */}
+        {/* Title *\/}
         <h2 className="text-2xl font-bold text-foreground mb-6">{item.title}</h2>
 
-        {/* Loading State */}
+        {/* Loading State *\/}
         {isLoading && (
           <div className="bg-muted/30 rounded-lg p-8 text-center border border-dashed border-border animate-pulse">
             <p className="text-muted-foreground">Loading task details...</p>
           </div>
         )}
 
-        {/* Error State */}
+        {/* Error State *\/}
         {error && (
           <div className="bg-destructive/10 rounded-lg p-4 border border-destructive/20">
             <p className="text-destructive text-sm">
@@ -136,6 +191,7 @@ export const CodingDetail = memo(({ item }: CodingDetailProps) => {
       </div>
     </div>
   );
+  */
 });
 
 CodingDetail.displayName = "CodingDetail";
