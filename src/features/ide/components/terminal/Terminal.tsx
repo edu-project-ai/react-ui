@@ -1,13 +1,6 @@
 import React from 'react';
-import {
-  useDockerTerminal,
-  type TerminalStatus,
-} from '../../hooks/useDockerTerminal';
+import { useDockerTerminal } from '../../hooks/useDockerTerminal';
 import './Terminal.css';
-
-// ─────────────────────────────────────────────
-// Types
-// ─────────────────────────────────────────────
 
 interface TerminalProps {
   /** Task ID passed to the .NET container-provisioning endpoint */
@@ -18,13 +11,10 @@ interface TerminalProps {
   style?: React.CSSProperties;
   /** Fires once the terminal is fully initialized and attached */
   onReady?: () => void;
+  /** Fires once the container has been provisioned, with the containerId */
+  onSessionCreated?: (containerId: string) => void;
 }
 
-// ─────────────────────────────────────────────
-// Sub-components (co-located, presentation-only)
-// ─────────────────────────────────────────────
-
-/** Spinner shown while the container boots & WebSocket connects */
 const BootOverlay: React.FC = () => (
   <div className="docker-terminal__overlay">
     <div className="docker-terminal__overlay-content">
@@ -78,28 +68,18 @@ const ErrorOverlay: React.FC<{
   </div>
 );
 
-// ─────────────────────────────────────────────
-// Terminal Component
-// ─────────────────────────────────────────────
 
-/**
- * Production-ready terminal that connects to a Go WebSocket proxy
- * (`docker-pty-proxy`) for bidirectional PTY streaming.
- *
- * Usage:
- * ```tsx
- * <Terminal taskId={task.id} />
- * ```
- */
 export const Terminal: React.FC<TerminalProps> = ({
   taskId,
   className,
   style,
   onReady,
+  onSessionCreated,
 }) => {
   const { terminalRef, status, error, retry } = useDockerTerminal({
     taskId,
     onReady,
+    onSessionCreated,
   });
 
   const isVisible: boolean = status === 'connected';

@@ -29,6 +29,7 @@ export {
   TaskDetailPage,
 } from "./learning-paths";
 export { ProgressPage } from "./progress";
+export { IdePage } from "./ide";
 
 // Authorization feature
 export * from "./authorization";

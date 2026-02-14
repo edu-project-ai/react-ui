@@ -16,6 +16,8 @@ interface UseDockerTerminalOptions {
   taskId: string;
   /** Called when the terminal is fully initialized and attached */
   onReady?: () => void;
+  /** Called once the container has been provisioned, with the containerId */
+  onSessionCreated?: (containerId: string) => void;
 }
 
 interface UseDockerTerminalReturn {
@@ -84,6 +86,7 @@ const XTERM_OPTIONS: ConstructorParameters<typeof Terminal>[0] = {
 export const useDockerTerminal = ({
   taskId,
   onReady,
+  onSessionCreated,
 }: UseDockerTerminalOptions): UseDockerTerminalReturn => {
   const terminalRef = useRef<HTMLDivElement | null>(null);
   const [status, setStatus] = useState<TerminalStatus>('idle');
@@ -97,13 +100,18 @@ export const useDockerTerminal = ({
   const socketRef = useRef<WebSocket | null>(null);
   const resizeObserverRef = useRef<ResizeObserver | null>(null);
   const onReadyRef = useRef(onReady);
+  const onSessionCreatedRef = useRef(onSessionCreated);
 
   const [startTaskSession] = useStartTaskSessionMutation();
 
-  // Keep callback ref fresh without re-triggering the boot effect
+  // Keep callback refs fresh without re-triggering the boot effect
   useEffect(() => {
     onReadyRef.current = onReady;
   }, [onReady]);
+
+  useEffect(() => {
+    onSessionCreatedRef.current = onSessionCreated;
+  }, [onSessionCreated]);
 
   // ── Boot + cleanup effect (Strict-Mode safe) ──
   useEffect(() => {
@@ -147,6 +155,9 @@ export const useDockerTerminal = ({
         }).unwrap();
 
         if (cancelled) return;
+
+        // Notify parent about the provisioned container
+        onSessionCreatedRef.current?.(containerId);
 
         // 2) Open the binary WebSocket to the Go proxy
         const wsUrl = `${WS_PROXY_BASE_URL}/attach?id=${containerId}`;

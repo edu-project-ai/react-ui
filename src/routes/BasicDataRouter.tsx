@@ -26,6 +26,7 @@ import {
   CheckpointPage,
   TaskDetailPage,
   ProgressPage,
+  IdePage,
 } from "@/features";
 
 const BasicDataRouter = () => {
@@ -45,7 +46,10 @@ const BasicDataRouter = () => {
 
         {/* Onboarding Wizard - Single entry point */}
         <Route path="/onboarding" Component={OnboardingWizard} />
-        
+
+        {/* Standalone IDE workspace — full-screen, no sidebar/header */}
+        <Route path="/workspace/:learningPathId/:itemId" Component={IdePage} />
+
         {/* Private routes */}
         <Route path="/" Component={PrivateLayout}>
           <Route path="/dashboard" Component={DashboardPage} />
