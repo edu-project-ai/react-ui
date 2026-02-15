@@ -11,6 +11,7 @@ interface IdeState {
   activeFilePath: string | null;
   sidebarVisible: boolean;
   activeSidebarPanel: 'explorer' | 'search';
+  savedFileContents: Record<string, string>;
 
   setContainerId: (id: string | null) => void;
   openFile: (path: string) => void;
@@ -18,6 +19,8 @@ interface IdeState {
   setActiveFile: (path: string) => void;
   markDirty: (path: string) => void;
   markClean: (path: string) => void;
+  setSavedContent: (path: string, content: string) => void;
+  checkDirtyState: (path: string, currentContent: string) => void;
   toggleSidebar: () => void;
   setActiveSidebarPanel: (panel: 'explorer' | 'search') => void;
   reset: () => void;
@@ -29,6 +32,7 @@ const initialState = {
   activeFilePath: null as string | null,
   sidebarVisible: true,
   activeSidebarPanel: 'explorer' as const,
+  savedFileContents: {} as Record<string, string>,
 };
 
 export const useIdeStore = create<IdeState>((set, get) => ({
@@ -85,6 +89,22 @@ export const useIdeStore = create<IdeState>((set, get) => ({
         t.path === path ? { ...t, isDirty: false } : t,
       ),
     })),
+
+  setSavedContent: (path, content) =>
+    set((state) => ({
+      savedFileContents: { ...state.savedFileContents, [path]: content },
+    })),
+
+  checkDirtyState: (path, currentContent) => {
+    const { savedFileContents } = get();
+    const isDirty = currentContent !== (savedFileContents[path] ?? '');
+
+    set((state) => ({
+      tabs: state.tabs.map((t) =>
+        t.path === path ? { ...t, isDirty } : t,
+      ),
+    }));
+  },
 
   toggleSidebar: () =>
     set((state) => ({ sidebarVisible: !state.sidebarVisible })),

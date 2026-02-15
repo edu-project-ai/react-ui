@@ -27,12 +27,14 @@ export function useMonacoModels() {
       const model = editor.getModel();
       if (!model) return;
 
-      const { containerId, activeFilePath, markClean } =
+      const { containerId, activeFilePath, markClean, setSavedContent } =
         useIdeStore.getState();
       if (!containerId || !activeFilePath) return;
 
       try {
-        await writeFile(containerId, activeFilePath, model.getValue());
+        const content = model.getValue();
+        await writeFile(containerId, activeFilePath, content);
+        setSavedContent(activeFilePath, content);
         markClean(activeFilePath);
         toast.success('File saved');
       } catch (err) {
@@ -70,9 +72,13 @@ export function useMonacoModels() {
         const language = getLanguageFromPath(path);
         model = monaco.editor.createModel(content, language, uri);
 
-        // Set up dirty detection
+        // Store initial saved content
+        useIdeStore.getState().setSavedContent(path, content);
+
+        // Set up dirty detection with smart checking
         const listener = model.onDidChangeContent(() => {
-          useIdeStore.getState().markDirty(path);
+          const currentContent = model?.getValue() ?? '';
+          useIdeStore.getState().checkDirtyState(path, currentContent);
         });
         contentListeners.current.set(path, listener);
       }

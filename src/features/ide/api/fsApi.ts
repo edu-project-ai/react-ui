@@ -12,6 +12,13 @@ export interface FileNode {
   children?: FileNode[];
 }
 
+export interface SearchResult {
+  file: string;
+  line: number;
+  column: number;
+  text: string;
+}
+
 export async function fetchFileTree(containerId: string): Promise<FileNode[]> {
   const { data } = await axios.get<FileNode[]>(`${PROXY_HTTP_URL}/fs/tree`, {
     params: { id: containerId },
@@ -40,4 +47,17 @@ export async function writeFile(
     params: { id: containerId, path },
     headers: { 'Content-Type': 'text/plain' },
   });
+}
+
+export async function searchFiles(
+  containerId: string,
+  query: string,
+): Promise<SearchResult[]> {
+  const { data } = await axios.get<SearchResult[]>(
+    `${PROXY_HTTP_URL}/fs/search`,
+    {
+      params: { id: containerId, q: query },
+    },
+  );
+  return data;
 }

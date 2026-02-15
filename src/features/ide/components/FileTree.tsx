@@ -5,6 +5,7 @@ import { RefreshCw, Loader2 } from 'lucide-react';
 import { fetchFileTree } from '../api/fsApi';
 import type { FileNode } from '../api/fsApi';
 import { useIdeStore } from '../store/useIdeStore';
+import { ContextMenu, type MenuItem } from './ContextMenu';
 import '../styles/ide.css';
 
 // ─────────────────────────────────────────────
@@ -51,6 +52,32 @@ function getFileIcon(name: string): string {
   if (dot < 0) return 'codicon-file';
   const ext = name.slice(dot).toLowerCase();
   return EXT_ICON_MAP[ext] ?? 'codicon-file';
+}
+
+// ─────────────────────────────────────────────
+// Sort file tree nodes (folders first, alphabetical)
+// ─────────────────────────────────────────────
+
+function sortFileTreeNodes(nodes: FileNode[]): FileNode[] {
+  const folders = nodes
+    .filter((n) => n.type === 'folder')
+    .sort((a, b) =>
+      a.name.localeCompare(b.name, undefined, { sensitivity: 'base' })
+    );
+
+  const files = nodes
+    .filter((n) => n.type === 'file')
+    .sort((a, b) =>
+      a.name.localeCompare(b.name, undefined, { sensitivity: 'base' })
+    );
+
+  return [
+    ...folders.map((f) => ({
+      ...f,
+      children: f.children ? sortFileTreeNodes(f.children) : undefined,
+    })),
+    ...files,
+  ];
 }
 
 // ─────────────────────────────────────────────
@@ -108,6 +135,19 @@ function Node({ node, style, dragHandle }: NodeRendererProps<TreeData>) {
           useIdeStore.getState().openFile(node.data.id);
         }
       }}
+      onContextMenu={(e: React.MouseEvent) => {
+        e.preventDefault();
+        // Dispatch custom event for context menu
+        window.dispatchEvent(
+          new CustomEvent('filetree-contextmenu', {
+            detail: {
+              x: e.clientX,
+              y: e.clientY,
+              node: node.data,
+            },
+          }),
+        );
+      }}
     >
       {node.data.isFolder && (
         <i
@@ -137,6 +177,11 @@ export function FileTree({ containerId }: FileTreeProps) {
   const [treeData, setTreeData] = useState<TreeData[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [contextMenu, setContextMenu] = useState<{
+    x: number;
+    y: number;
+    node: TreeData;
+  } | null>(null);
 
   const loadTree = useCallback(async () => {
     if (!containerId) return;
@@ -147,7 +192,8 @@ export function FileTree({ containerId }: FileTreeProps) {
       if (!data || !Array.isArray(data)) {
         setTreeData([]);
       } else {
-        setTreeData(toTreeData(data));
+        const sortedData = sortFileTreeNodes(data);
+        setTreeData(toTreeData(sortedData));
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load file tree');
@@ -161,8 +207,32 @@ export function FileTree({ containerId }: FileTreeProps) {
     loadTree();
   }, [loadTree]);
 
+  // Listen for context menu events from Node components
+  useEffect(() => {
+    const handleContextMenu = (e: Event) => {
+      const event = e as CustomEvent<{ x: number; y: number; node: TreeData }>;
+      setContextMenu(event.detail);
+    };
+
+    window.addEventListener('filetree-contextmenu', handleContextMenu);
+    return () => {
+      window.removeEventListener('filetree-contextmenu', handleContextMenu);
+    };
+  }, []);
+
+  const getNodeMenuItems = (node: TreeData): MenuItem[] => [
+    {
+      label: 'Copy Path',
+      icon: 'codicon-copy',
+      onClick: () => {
+        navigator.clipboard.writeText(node.id);
+      },
+    },
+  ];
+
   return (
-    <div className="h-full flex flex-col bg-[#1e1e1e] text-[#cccccc] select-none">
+    <>
+      <div className="h-full flex flex-col bg-[#1e1e1e] text-[#cccccc] select-none">
       {/* Header */}
       <div className="sidebar-header">
         <span>Explorer</span>
@@ -213,5 +283,15 @@ export function FileTree({ containerId }: FileTreeProps) {
         )}
       </div>
     </div>
+
+    {contextMenu && (
+      <ContextMenu
+        x={contextMenu.x}
+        y={contextMenu.y}
+        items={getNodeMenuItems(contextMenu.node)}
+        onClose={() => setContextMenu(null)}
+      />
+    )}
+    </>
   );
 }

@@ -3,25 +3,35 @@ import '../styles/ide.css';
 
 export function ActivityBar() {
   const sidebarVisible = useIdeStore((s) => s.sidebarVisible);
+  const activeSidebarPanel = useIdeStore((s) => s.activeSidebarPanel);
   const toggleSidebar = useIdeStore((s) => s.toggleSidebar);
+  const setActiveSidebarPanel = useIdeStore((s) => s.setActiveSidebarPanel);
+
+  const handlePanelClick = (panel: 'explorer' | 'search') => {
+    if (activeSidebarPanel === panel) {
+      toggleSidebar(); // toggle visibility
+    } else {
+      setActiveSidebarPanel(panel);
+      if (!sidebarVisible) toggleSidebar(); // show if hidden
+    }
+  };
 
   return (
     <div className="activity-bar">
       <button
         type="button"
-        className={`activity-bar-button ${sidebarVisible ? 'active' : ''}`}
-        onClick={toggleSidebar}
-        title="Explorer (Ctrl+B)"
+        className={`activity-bar-button ${activeSidebarPanel === 'explorer' && sidebarVisible ? 'active' : ''}`}
+        onClick={() => handlePanelClick('explorer')}
+        title="Explorer (Ctrl+Shift+E)"
       >
         <i className="codicon codicon-files" style={{ fontSize: 24 }} />
       </button>
 
       <button
         type="button"
-        className="activity-bar-button"
-        title="Search (coming soon)"
-        disabled
-        style={{ opacity: 0.4 }}
+        className={`activity-bar-button ${activeSidebarPanel === 'search' && sidebarVisible ? 'active' : ''}`}
+        onClick={() => handlePanelClick('search')}
+        title="Search (Ctrl+Shift+F)"
       >
         <i className="codicon codicon-search" style={{ fontSize: 24 }} />
       </button>
