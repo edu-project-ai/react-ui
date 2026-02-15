@@ -1,145 +1,142 @@
 import { useCallback, useEffect, useState } from 'react';
-import {
-  Folder,
-  FolderOpen,
-  FileCode,
-  File,
-  ChevronRight,
-  ChevronDown,
-  RefreshCw,
-  Loader2,
-} from 'lucide-react';
-import { fetchFileTree, type FileNode } from '../api/fsApi';
+import { Tree } from 'react-arborist';
+import type { NodeRendererProps } from 'react-arborist';
+import { RefreshCw, Loader2 } from 'lucide-react';
+import { fetchFileTree } from '../api/fsApi';
+import type { FileNode } from '../api/fsApi';
+import { useIdeStore } from '../store/useIdeStore';
+import '../styles/ide.css';
 
 // ─────────────────────────────────────────────
-// Helpers
+// Icon mapping by file extension
 // ─────────────────────────────────────────────
 
-const CODE_EXTENSIONS = new Set([
-  '.ts', '.tsx', '.js', '.jsx', '.go', '.py', '.rs',
-  '.java', '.c', '.cpp', '.h', '.cs', '.rb', '.php',
-  '.swift', '.kt', '.scala', '.sh', '.bash', '.zsh',
-  '.json', '.yaml', '.yml', '.toml', '.xml', '.html',
-  '.css', '.scss', '.less', '.sql', '.graphql', '.proto',
-  '.vue', '.svelte', '.md', '.mdx',
-]);
+const EXT_ICON_MAP: Record<string, string> = {
+  '.ts': 'codicon-file-code',
+  '.tsx': 'codicon-file-code',
+  '.js': 'codicon-file-code',
+  '.jsx': 'codicon-file-code',
+  '.py': 'codicon-file-code',
+  '.go': 'codicon-file-code',
+  '.rs': 'codicon-file-code',
+  '.java': 'codicon-file-code',
+  '.c': 'codicon-file-code',
+  '.cpp': 'codicon-file-code',
+  '.cs': 'codicon-file-code',
+  '.rb': 'codicon-file-code',
+  '.php': 'codicon-file-code',
+  '.swift': 'codicon-file-code',
+  '.kt': 'codicon-file-code',
+  '.sh': 'codicon-symbol-event',
+  '.bash': 'codicon-symbol-event',
+  '.json': 'codicon-json',
+  '.yaml': 'codicon-file-code',
+  '.yml': 'codicon-file-code',
+  '.html': 'codicon-file-code',
+  '.css': 'codicon-file-code',
+  '.scss': 'codicon-file-code',
+  '.md': 'codicon-markdown',
+  '.mdx': 'codicon-markdown',
+  '.svg': 'codicon-file-media',
+  '.png': 'codicon-file-media',
+  '.jpg': 'codicon-file-media',
+  '.gif': 'codicon-file-media',
+  '.toml': 'codicon-settings-gear',
+  '.xml': 'codicon-file-code',
+  '.sql': 'codicon-database',
+};
 
-function isCodeFile(name: string): boolean {
+function getFileIcon(name: string): string {
   const dot = name.lastIndexOf('.');
-  if (dot < 0) return false;
-  return CODE_EXTENSIONS.has(name.slice(dot).toLowerCase());
+  if (dot < 0) return 'codicon-file';
+  const ext = name.slice(dot).toLowerCase();
+  return EXT_ICON_MAP[ext] ?? 'codicon-file';
 }
 
 // ─────────────────────────────────────────────
-// Types
+// Convert API FileNode to react-arborist data
 // ─────────────────────────────────────────────
 
-interface FileTreeProps {
-  containerId: string;
-  activeFilePath: string | null;
-  onSelectFile: (path: string) => void;
+interface TreeData {
+  id: string;
+  name: string;
+  children?: TreeData[];
+  isFolder: boolean;
 }
 
-interface TreeNodeProps {
-  node: FileNode;
-  depth: number;
-  activeFilePath: string | null;
-  expandedPaths: Set<string>;
-  onToggle: (path: string) => void;
-  onSelectFile: (path: string) => void;
+function toTreeData(nodes: FileNode[]): TreeData[] {
+  return nodes.map((n) => ({
+    id: n.path,
+    name: n.name,
+    isFolder: n.type === 'folder',
+    children: n.children ? toTreeData(n.children) : undefined,
+  }));
 }
 
 // ─────────────────────────────────────────────
-// TreeNode (recursive)
+// Tree Node renderer
 // ─────────────────────────────────────────────
 
-function TreeNode({
-  node,
-  depth,
-  activeFilePath,
-  expandedPaths,
-  onToggle,
-  onSelectFile,
-}: TreeNodeProps) {
-  const isFolder = node.type === 'folder';
-  const isExpanded = expandedPaths.has(node.path);
-  const isActive = node.path === activeFilePath;
+function Node({ node, style, dragHandle }: NodeRendererProps<TreeData>) {
+  const activeFilePath = useIdeStore((s) => s.activeFilePath);
+  const isActive = !node.data.isFolder && node.data.id === activeFilePath;
 
-  const handleClick = () => {
-    if (isFolder) {
-      onToggle(node.path);
-    } else {
-      onSelectFile(node.path);
-    }
-  };
+  const iconClass = node.data.isFolder
+    ? node.isOpen
+      ? 'codicon-folder-opened'
+      : 'codicon-folder'
+    : getFileIcon(node.data.name);
 
-  const Icon = isFolder
-    ? isExpanded
-      ? FolderOpen
-      : Folder
-    : isCodeFile(node.name)
-      ? FileCode
-      : File;
-
-  const iconColor = isFolder
-    ? 'text-amber-400'
-    : isCodeFile(node.name)
-      ? 'text-blue-400'
-      : 'text-gray-400';
+  const iconColor = node.data.isFolder
+    ? '#dcb67a'
+    : iconClass === 'codicon-file-code'
+      ? '#519aba'
+      : '#969696';
 
   return (
-    <div>
-      <button
-        type="button"
-        onClick={handleClick}
-        className={`
-          flex items-center w-full gap-1 px-2 py-[3px] text-left text-[13px]
-          hover:bg-[#2a2d2e] transition-colors duration-75 cursor-pointer
-          ${isActive ? 'bg-[#37373d] text-white' : 'text-[#cccccc]'}
-        `}
-        style={{ paddingLeft: `${depth * 16 + 8}px` }}
-      >
-        {isFolder ? (
-          isExpanded ? (
-            <ChevronDown size={14} className="shrink-0 text-gray-500" />
-          ) : (
-            <ChevronRight size={14} className="shrink-0 text-gray-500" />
-          )
-        ) : (
-          <span className="w-[14px] shrink-0" />
-        )}
-        <Icon size={16} className={`shrink-0 ${iconColor}`} />
-        <span className="truncate">{node.name}</span>
-      </button>
-
-      {isFolder && isExpanded && node.children && (
-        <div>
-          {(node.children ?? []).map((child) => (
-            <TreeNode
-              key={child.path}
-              node={child}
-              depth={depth + 1}
-              activeFilePath={activeFilePath}
-              expandedPaths={expandedPaths}
-              onToggle={onToggle}
-              onSelectFile={onSelectFile}
-            />
-          ))}
-        </div>
+    <div
+      ref={dragHandle}
+      style={style}
+      className={`flex items-center gap-1 px-2 text-[13px] cursor-pointer h-[22px]
+        hover:bg-[#2a2d2e] transition-colors duration-75
+        ${isActive ? 'bg-[#37373d] text-white' : 'text-[#cccccc]'}
+      `}
+      onClick={() => {
+        if (node.data.isFolder) {
+          node.toggle();
+        } else {
+          useIdeStore.getState().openFile(node.data.id);
+        }
+      }}
+    >
+      {node.data.isFolder && (
+        <i
+          className={`codicon ${node.isOpen ? 'codicon-chevron-down' : 'codicon-chevron-right'}`}
+          style={{ fontSize: 12, color: '#858585', flexShrink: 0 }}
+        />
       )}
+      {!node.data.isFolder && <span style={{ width: 12, flexShrink: 0 }} />}
+      <i
+        className={`codicon ${iconClass} file-tree-icon`}
+        style={{ color: iconColor }}
+      />
+      <span className="truncate">{node.data.name}</span>
     </div>
   );
 }
 
 // ─────────────────────────────────────────────
-// FileTree
+// FileTree component
 // ─────────────────────────────────────────────
 
-export function FileTree({ containerId, activeFilePath, onSelectFile }: FileTreeProps) {
-  const [tree, setTree] = useState<FileNode[]>([]);
+interface FileTreeProps {
+  containerId: string;
+}
+
+export function FileTree({ containerId }: FileTreeProps) {
+  const [treeData, setTreeData] = useState<TreeData[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [expandedPaths, setExpandedPaths] = useState<Set<string>>(new Set());
 
   const loadTree = useCallback(async () => {
     if (!containerId) return;
@@ -147,25 +144,14 @@ export function FileTree({ containerId, activeFilePath, onSelectFile }: FileTree
     setError(null);
     try {
       const data = await fetchFileTree(containerId);
-
-      // Debug logging
-      console.log('[FileTree] Raw API response:', data);
-
-      // Robust validation
-      if (!data) {
-        console.warn('[FileTree] Received null/undefined, using empty array');
-        setTree([]);
-      } else if (!Array.isArray(data)) {
-        console.error('[FileTree] Received non-array data:', typeof data, data);
-        setError('Invalid data format received from server');
-        setTree([]);
+      if (!data || !Array.isArray(data)) {
+        setTreeData([]);
       } else {
-        setTree(data);
+        setTreeData(toTreeData(data));
       }
     } catch (err) {
-      console.error('[FileTree] Fetch error:', err);
       setError(err instanceof Error ? err.message : 'Failed to load file tree');
-      setTree([]); // Always ensure tree is an array
+      setTreeData([]);
     } finally {
       setLoading(false);
     }
@@ -175,22 +161,10 @@ export function FileTree({ containerId, activeFilePath, onSelectFile }: FileTree
     loadTree();
   }, [loadTree]);
 
-  const handleToggle = useCallback((path: string) => {
-    setExpandedPaths((prev) => {
-      const next = new Set(prev);
-      if (next.has(path)) {
-        next.delete(path);
-      } else {
-        next.add(path);
-      }
-      return next;
-    });
-  }, []);
-
   return (
     <div className="h-full flex flex-col bg-[#1e1e1e] text-[#cccccc] select-none">
       {/* Header */}
-      <div className="flex items-center justify-between px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-[#bbbbbb] border-b border-[#2d2d2d]">
+      <div className="sidebar-header">
         <span>Explorer</span>
         <button
           type="button"
@@ -204,8 +178,8 @@ export function FileTree({ containerId, activeFilePath, onSelectFile }: FileTree
       </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-y-auto overflow-x-hidden py-1">
-        {loading && tree.length === 0 && (
+      <div className="flex-1 overflow-hidden">
+        {loading && treeData.length === 0 && (
           <div className="flex items-center justify-center py-8">
             <Loader2 size={20} className="animate-spin text-gray-500" />
           </div>
@@ -217,23 +191,26 @@ export function FileTree({ containerId, activeFilePath, onSelectFile }: FileTree
           </div>
         )}
 
-        {!loading && !error && tree.length === 0 && (
+        {!loading && !error && treeData.length === 0 && (
           <div className="px-3 py-4 text-xs text-gray-500 text-center">
             No files found
           </div>
         )}
 
-        {tree.map((node) => (
-          <TreeNode
-            key={node.path}
-            node={node}
-            depth={0}
-            activeFilePath={activeFilePath}
-            expandedPaths={expandedPaths}
-            onToggle={handleToggle}
-            onSelectFile={onSelectFile}
-          />
-        ))}
+        {treeData.length > 0 && (
+          <Tree<TreeData>
+            data={treeData}
+            openByDefault={false}
+            rowHeight={22}
+            indent={16}
+            padding={4}
+            width="100%"
+            disableDrag
+            disableDrop
+          >
+            {Node}
+          </Tree>
+        )}
       </div>
     </div>
   );
