@@ -1,11 +1,20 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import Editor, { type OnMount } from '@monaco-editor/react';
+import Editor, { type OnMount, loader } from '@monaco-editor/react';
+import * as monaco from 'monaco-editor';
 import { Loader2 } from 'lucide-react';
+
+// Vital fix: Tell @monaco-editor/react to use our local 'monaco-editor' NPM package
+// instead of dynamically downloading from CDN. Without this, local models created via 
+// monaco.editor.createModel clash with the CDN editor instance, crushing syntax highlighting
+// and throwing "V is not iterable" due to prototype/instance mismatches.
+loader.config({ monaco });
 import { useIdeStore } from '../store/useIdeStore';
-import { readFile, writeFile } from '../api/fsApi';
+import { useLazyReadFileQuery } from '../api/ideProxyApi';
+import { useMonacoModels } from '../hooks/useMonacoModels';
 import { EditorTabs } from './EditorTabs';
 import { StatusBar } from './StatusBar';
 import { getLanguageFromPath } from '../utils/languageMap';
+import type { CursorPosition } from '../types';
 import '../styles/ide.css';
 
 export function EditorArea() {
@@ -13,54 +22,67 @@ export function EditorArea() {
   const containerId = useIdeStore((s) => s.containerId);
   const tabs = useIdeStore((s) => s.tabs);
 
-  // Local state
-  const [fileContent, setFileContent] = useState<string>('');
+  const { editorRef, switchToFile, saveRef, disposeModel } = useMonacoModels();
+
+  const [triggerReadFile] = useLazyReadFileQuery();
+
   const [isLoading, setIsLoading] = useState(false);
-  const [cursorPosition, setCursorPosition] = useState<{
-    line: number;
-    column: number;
-  } | null>(null);
+  const [editorReady, setEditorReady] = useState(false);
+  const [cursorPosition, setCursorPosition] = useState<CursorPosition | null>(
+    null,
+  );
 
-  const editorRef = useRef<any>(null);
-
+  // Track previous tabs to detect closures and dispose models
+  const prevTabsRef = useRef<typeof tabs>([]);
   useEffect(() => {
-    if (!activeFilePath || !containerId) return;
+    const prevPaths = new Set(prevTabsRef.current.map((t) => t.path));
+    const currPaths = new Set(tabs.map((t) => t.path));
+    for (const path of prevPaths) {
+      if (!currPaths.has(path)) {
+        disposeModel(path);
+      }
+    }
+    prevTabsRef.current = tabs;
+  }, [tabs, disposeModel]);
 
-    const loadContent = async () => {
+  // Load file content and switch Monaco model when active file or editor readiness changes
+  useEffect(() => {
+    if (!activeFilePath || !containerId || !editorReady) return;
+    
+    // Fast path: if we already have the model in memory, switch immediately
+    // This avoids a network request, prevents "V is not iterable" by not holding onto
+    // a disposed model during the file load, and preserves unsaved changes.
+    const uri = monaco.Uri.parse(`file:///${activeFilePath}`);
+    if (monaco.editor.getModel(uri)) {
+      switchToFile(activeFilePath, ''); // content is ignored in switchToFile if model exists
+      return;
+    }
+
+    let cancelled = false;
+    const loadAndSwitch = async () => {
       setIsLoading(true);
       try {
-        const content = await readFile(containerId, activeFilePath);
-        setFileContent(content);
+        const content = await triggerReadFile({ containerId, path: activeFilePath }).unwrap();
+        if (!cancelled) {
+          switchToFile(activeFilePath, content);
+        }
       } catch (error) {
-        console.error("Failed to load file:", error);
-        setFileContent(''); // Або показати помилку
+        console.error('Failed to load file:', error);
       } finally {
-        setIsLoading(false);
+        if (!cancelled) setIsLoading(false);
       }
     };
 
-    loadContent();
-  }, [activeFilePath, containerId]);
-
-  // Збереження файлу (Ctrl+S)
-  const handleSave = useCallback(async () => {
-    if (!containerId || !activeFilePath || !editorRef.current) return;
-
-    const content = editorRef.current.getValue();
-    try {
-      await writeFile(containerId, activeFilePath, content);
-      // Можна додати toast.success("Saved")
-    } catch (error) {
-      console.error("Failed to save:", error);
-      // toast.error("Failed to save")
-    }
-  }, [containerId, activeFilePath]);
+    loadAndSwitch();
+    return () => {
+      cancelled = true;
+    };
+  }, [activeFilePath, containerId, editorReady, switchToFile, triggerReadFile]);
 
   const handleEditorMount: OnMount = useCallback(
     (editor, monaco) => {
       editorRef.current = editor;
 
-      // Track cursor position
       editor.onDidChangeCursorPosition((e) => {
         setCursorPosition({
           line: e.position.lineNumber,
@@ -68,21 +90,15 @@ export function EditorArea() {
         });
       });
 
-      // Register Ctrl+S
-      editor.addCommand(
-        monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS,
-        () => {
-          handleSave();
-        }
-      );
-    },
-    [handleSave]
-  );
+      // Use saveRef so the keybinding always calls the latest save function
+      editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, () => {
+        saveRef.current?.();
+      });
 
-  // Оновлюємо ref контенту при змінах
-  const handleEditorChange = (value: string | undefined) => {
-    // Тут можна оновлювати unsaved changes indicator в табах
-  };
+      setEditorReady(true);
+    },
+    [editorRef, saveRef],
+  );
 
   const hasTabs = tabs.length > 0;
   const language = activeFilePath ? getLanguageFromPath(activeFilePath) : null;
@@ -100,13 +116,8 @@ export function EditorArea() {
 
         {hasTabs && activeFilePath ? (
           <Editor
-            key={activeFilePath}
-            path={activeFilePath}
-            defaultLanguage={getLanguageFromPath(activeFilePath)}
             theme="vs-dark"
-            value={fileContent}
             onMount={handleEditorMount}
-            onChange={handleEditorChange}
             options={{
               minimap: { enabled: false },
               fontSize: 14,

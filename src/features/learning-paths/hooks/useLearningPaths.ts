@@ -28,7 +28,7 @@ import type {
  *
  * WHAT THIS HOOK PROVIDES:
  * - UI state: filter, sortBy, sortOrder, selectedPathId, expandedCheckpoints
- * - RTK Query hooks: getAllLearningPaths, getLearningPathById, getCheckpoint
+ * - React Query hooks: getAllLearningPaths, getLearningPathById, getCheckpoint
  * - Mutations: createLearningPath, updateTaskCompletion
  *
  * EXAMPLE USAGE:
@@ -42,17 +42,17 @@ import type {
  *   isCreating, isUpdating,
  * } = useLearningPaths();
  *
- * // For fetching data, use RTK Query hooks directly
- * const { data: paths, isLoading } = useGetAllLearningPathsQuery();
+ * // For fetching data, use React Query hooks directly
+ * const { data: paths, isLoading } = useGetAllLearningPaths();
  * ```
  */
 export const useLearningPaths = () => {
   const dispatch = useAppDispatch();
 
   // Mutations
-  const [createPathMutation, { isLoading: isCreating }] =
+  const [createPath, { isLoading: isCreating }] =
     useCreateLearningPathMutation();
-  const [updateTaskMutation, { isLoading: isUpdating }] =
+  const [updateTask, { isLoading: isUpdating }] =
     useUpdateTaskCompletionMutation();
 
   // UI State from Redux
@@ -75,7 +75,7 @@ export const useLearningPaths = () => {
     data: CreateLearningPathRequest
   ): Promise<CreateLearningPathResult> => {
     try {
-      const result = await createPathMutation(data).unwrap();
+      const result = await createPath(data).unwrap();
       toast.success("Learning path created successfully! 🎉");
       return {
         success: true,
@@ -103,7 +103,7 @@ export const useLearningPaths = () => {
     cacheCheckpointId?: string;
   }): Promise<UpdateTaskResult> => {
     try {
-      const result = await updateTaskMutation({
+      const result = await updateTask({
         learningPathId: params.learningPathId,
         itemId: params.taskId,
         data: {
@@ -117,9 +117,9 @@ export const useLearningPaths = () => {
           : "Task marked as incomplete"
       );
 
-      if (result.progress) {
+      if (params.completed && result.completionPercentage > 0) {
         toast.success(
-          `Progress: ${result.progress.completedTasks}/${result.progress.totalTasks} tasks (${result.progress.percentage}%)`,
+          `Learning path: ${result.completionPercentage}% complete`,
           { duration: 4000 }
         );
       }

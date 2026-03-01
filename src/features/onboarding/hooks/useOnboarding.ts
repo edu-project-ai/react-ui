@@ -3,7 +3,7 @@ import { toast } from "react-hot-toast";
 import {
   useUploadProfilePhotoMutation,
   useCreateUserMutation,
-} from "@/features/authorization/api/userApi";
+} from "@/features/authorization";
 import {
   setPhotoPreview as setPhotoPreviewAction,
   setSkillLevel as setSkillLevelAction,
@@ -14,7 +14,7 @@ import type { SkillLevel, Technology } from "../constants";
 
 /**
  * Hook for onboarding flow
- * Uses RTK Query for backend operations and Redux for UI state
+ * Uses React Query for backend operations and Redux for UI state
  */
 export const useOnboarding = () => {
   const dispatch = useAppDispatch();
@@ -53,7 +53,7 @@ export const useOnboarding = () => {
   };
 
   /**
-   * Upload profile photo using RTK Query
+   * Upload profile photo using React Query
    */
   const uploadProfilePhoto = async (file: File) => {
     try {
@@ -75,7 +75,7 @@ export const useOnboarding = () => {
   };
 
   /**
-   * Complete onboarding by creating user profile using RTK Query
+   * Complete onboarding by creating user profile using React Query
    * @param data - User profile data
    * @param options.clearOnError - Clear onboarding state on error (default: true)
    */

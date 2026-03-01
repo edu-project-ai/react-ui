@@ -58,7 +58,7 @@ const BasicDataRouter = () => {
           
           {/* Learning Paths routes */}
           <Route path="/learning-paths" Component={LearningPathsPage} />
-          <Route path="/learning-paths/create" Component={CreateLearningPathPage} />
+          <Route path="/create-roadmap" Component={CreateLearningPathPage} />
           <Route path="/learning-paths/:id" Component={LearningPathDetailPage} />
           <Route path="/learning-paths/:id/checkpoints/:checkpointId" Component={CheckpointPage} />
           <Route path="/learning-paths/:id/checkpoints/:checkpointId/tasks/:taskId" Component={TaskDetailPage} />

@@ -9,7 +9,8 @@ import { useStartTaskSessionMutation } from '../api/codeExecutionApi';
 // Types
 // ─────────────────────────────────────────────
 
-export type TerminalStatus = 'idle' | 'booting' | 'connected' | 'error';
+export type { TerminalStatus } from '../types';
+import type { TerminalStatus } from '../types';
 
 interface UseDockerTerminalOptions {
   /** The task ID to create a container session for */

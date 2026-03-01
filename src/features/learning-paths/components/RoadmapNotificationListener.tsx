@@ -3,14 +3,15 @@ import toast from "react-hot-toast";
 import { signalRService } from "../../../services/signalrService";
 import { useSignalR } from "../../../context/SignalRContext";
 import { useAppDispatch } from "@/hooks/useReduxHooks";
-import { addNotification } from "@/features/notifications/store/notifications.slice";
+import { addNotification } from "@/features/notifications";
+import type { NotificationPayload } from "@/features/notifications";
 
 interface RoadmapUpdateMessage {
   type: "RoadmapProgress" | "RoadmapCompleted" | "RoadmapError" | "RoadmapPreview";
   correlationId: string;
   status: string;
   message: string;
-  data?: any;
+  data?: NotificationPayload;
 }
 
 export const RoadmapNotificationListener = () => {

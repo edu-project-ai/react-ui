@@ -223,10 +223,9 @@ export const CheckpointPage = () => {
     data: checkpoint,
     isLoading,
     error,
-  } = useGetCheckpointQuery({
-    learningPathId: id!,
-    checkpointId: checkpointId!,
-  });
+  } = useGetCheckpointQuery(
+    { learningPathId: id!, checkpointId: checkpointId! }
+  );
 
   if (isLoading) {
     return <LoadingState />;

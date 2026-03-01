@@ -1,19 +1,7 @@
 import React, { useRef, useState, useEffect } from 'react';
+import type { ContextMenuProps } from '../types';
 
-export interface MenuItem {
-  label: string;
-  icon?: string; // codicon class
-  onClick: () => void;
-  disabled?: boolean;
-  divider?: boolean; // show divider after this item
-}
-
-interface ContextMenuProps {
-  x: number;
-  y: number;
-  items: MenuItem[];
-  onClose: () => void;
-}
+export type { MenuItem } from '../types';
 
 export function ContextMenu({ x, y, items, onClose }: ContextMenuProps) {
   const menuRef = useRef<HTMLDivElement>(null);

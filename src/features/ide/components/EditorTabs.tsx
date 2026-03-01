@@ -1,13 +1,9 @@
-import { useCallback, useState } from 'react';
-import type { Tab } from '../store/types';
+import { useCallback } from 'react';
 import { useIdeStore } from '../store/useIdeStore';
-import { ContextMenu, type MenuItem } from './ContextMenu';
+import { useTabContextMenu } from '../hooks/useTabContextMenu';
+import { ContextMenu } from './ContextMenu';
+import { getFileName } from '../utils/pathUtils';
 import '../styles/ide.css';
-
-function getFileName(path: string): string {
-  const parts = path.split('/');
-  return parts[parts.length - 1] || path;
-}
 
 export function EditorTabs() {
   const tabs = useIdeStore((s) => s.tabs);
@@ -15,11 +11,8 @@ export function EditorTabs() {
   const setActiveFile = useIdeStore((s) => s.setActiveFile);
   const closeTab = useIdeStore((s) => s.closeTab);
 
-  const [contextMenu, setContextMenu] = useState<{
-    x: number;
-    y: number;
-    tab: Tab;
-  } | null>(null);
+  const { contextMenu, handleContextMenu, getMenuItems, closeContextMenu } =
+    useTabContextMenu();
 
   const handleMouseDown = useCallback(
     (e: React.MouseEvent, path: string) => {
@@ -31,58 +24,6 @@ export function EditorTabs() {
     },
     [closeTab],
   );
-
-  const handleContextMenu = (e: React.MouseEvent, tab: Tab) => {
-    e.preventDefault();
-    setContextMenu({
-      x: e.clientX,
-      y: e.clientY,
-      tab,
-    });
-  };
-
-  const getTabMenuItems = (tab: Tab): MenuItem[] => {
-    const tabIndex = tabs.findIndex((t) => t.path === tab.path);
-
-    return [
-      {
-        label: 'Close',
-        icon: 'codicon-close',
-        onClick: () => closeTab(tab.path),
-      },
-      {
-        label: 'Close Others',
-        icon: 'codicon-close-all',
-        onClick: () => {
-          tabs.filter((t) => t.path !== tab.path).forEach((t) => closeTab(t.path));
-        },
-        disabled: tabs.length === 1,
-      },
-      {
-        label: 'Close to the Right',
-        icon: 'codicon-arrow-right',
-        onClick: () => {
-          tabs.slice(tabIndex + 1).forEach((t) => closeTab(t.path));
-        },
-        disabled: tabIndex === tabs.length - 1,
-      },
-      {
-        label: 'Close All',
-        icon: 'codicon-close-all',
-        onClick: () => {
-          tabs.forEach((t) => closeTab(t.path));
-        },
-        divider: true,
-      },
-      {
-        label: 'Copy Path',
-        icon: 'codicon-copy',
-        onClick: () => {
-          navigator.clipboard.writeText(tab.path);
-        },
-      },
-    ];
-  };
 
   if (tabs.length === 0) return null;
 
@@ -128,8 +69,8 @@ export function EditorTabs() {
         <ContextMenu
           x={contextMenu.x}
           y={contextMenu.y}
-          items={getTabMenuItems(contextMenu.tab)}
-          onClose={() => setContextMenu(null)}
+          items={getMenuItems(contextMenu.tab)}
+          onClose={closeContextMenu}
         />
       )}
     </>

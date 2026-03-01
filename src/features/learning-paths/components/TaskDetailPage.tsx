@@ -1,6 +1,6 @@
 import { useState, memo, useCallback } from "react";
 import { useParams, useLocation, useNavigate } from "react-router-dom";
-import { useGetCheckpointQuery as useGetCheckpointDetailsQuery } from "../api/learningPathsApi";
+import { useGetCheckpointQuery } from "../api/learningPathsApi";
 import { useLearningPaths } from "../hooks/useLearningPaths";
 
 import { Spinner } from "@/components/ui/spinner";
@@ -306,11 +306,8 @@ export const TaskDetailPage = () => {
     data: checkpoint,
     isLoading,
     error,
-  } = useGetCheckpointDetailsQuery(
-    {
-      learningPathId: id!,
-      checkpointId: effectiveCheckpointId!,
-    },
+  } = useGetCheckpointQuery(
+    { learningPathId: id!, checkpointId: effectiveCheckpointId! },
     { skip: !effectiveCheckpointId }
   );
 

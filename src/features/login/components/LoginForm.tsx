@@ -1,6 +1,7 @@
 import { useForm } from "react-hook-form";
 import { Link, useNavigate } from "react-router";
 import { useState } from "react";
+import { Form } from "@/components/ui/form";
 import FormInput from "@/components/form/FormInput";
 import FormPasswordInput from "@/components/form/FormPasswordInput";
 import { Button } from "@/components/ui/button";
@@ -21,12 +22,13 @@ export default function LoginForm() {
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
 
-  const { control, handleSubmit } = useForm<LoginFormData>({
+  const methods = useForm<LoginFormData>({
     defaultValues: {
       email: "",
       password: "",
     },
   });
+  const { control, handleSubmit } = methods;
 
   const onSubmit = async (data: LoginFormData) => {
     setIsLoading(true);
@@ -83,7 +85,8 @@ export default function LoginForm() {
       <FormDivider />
 
       {/* Email/Password Form */}
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+      <Form {...methods}>
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
         <FormInput
           name="email"
           label="Email"
@@ -141,6 +144,7 @@ export default function LoginForm() {
           </Link>
         </div>
       </form>
-    </div>
+      </Form>
+      </div>
   );
 }

@@ -2,7 +2,7 @@ import { memo } from "react";
 import { Link, useParams } from "react-router-dom";
 import { useGetLearningPathByIdQuery } from "../api/learningPathsApi";
 import { Spinner } from "@/components/ui/spinner";
-import type { Checkpoint } from "../services/type";
+import type { CheckpointPreview } from "../services/type";
 import { ProgressBar } from "./ProgressBar";
 import { CheckpointTimelineItem } from "./CheckpointTimelineItem";
 
@@ -23,14 +23,7 @@ const BackArrowIcon = memo(() => (
 ));
 BackArrowIcon.displayName = "BackArrowIcon";
 
-/**
- * Helper to extract status from planJson
- */
-const getPlanStatus = (planJson?: Record<string, unknown> | null): string | null => {
-  if (!planJson) return null;
-  const status = planJson.Status ?? planJson.status;
-  return typeof status === "string" ? status : null;
-};
+
 
 const SpinnerIcon = memo(({ className = "w-5 h-5" }: { className?: string }) => (
   <svg
@@ -242,7 +235,7 @@ const LearningPathHeader = memo(({
 LearningPathHeader.displayName = "LearningPathHeader";
 
 interface CheckpointsTimelineProps {
-  checkpoints: Checkpoint[];
+  checkpoints: CheckpointPreview[];
   learningPathId: string;
 }
 
@@ -292,8 +285,9 @@ export const LearningPathDetailPage = () => {
     learningPath.progress && learningPath.progress.percentage >= 100;
   
   // Check if the learning path is still being generated
-  const planStatus = getPlanStatus(learningPath.planJson);
-  const isGenerating = planStatus === "generating";
+  const isGenerating = ["pending", "processing", "generating"].includes(
+    learningPath.generationStatus || ""
+  );
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-5xl">
@@ -309,12 +303,12 @@ export const LearningPathDetailPage = () => {
 
         <LearningPathHeader
           title={learningPath.title}
-          description={learningPath.description}
+          description={learningPath.description || ""}
           isActive={learningPath.isActive}
           isCompleted={!!isCompleted}
           isGenerating={isGenerating}
           difficultyLevel={learningPath.difficultyLevel}
-          estimatedDays={learningPath.estimatedDays}
+          estimatedDays={learningPath.estimatedDays ?? undefined}
           checkpointCount={learningPath.checkpoints.length}
           progress={learningPath.progress}
         />

@@ -1,15 +1,24 @@
-import { useEffect } from "react";
-import { useUser } from "@/features/authorization";
+import { useTheme } from "next-themes";
 import { cn } from "@/lib/utils";
+import { useEffect, useState } from "react";
 
 export const ThemeToggle = ({ className }: { className?: string }) => {
-  const { theme, toggleTheme } = useUser();
+  const { theme, setTheme, resolvedTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    const root = window.document.documentElement;
-    root.classList.remove("light", "dark");
-    root.classList.add(theme);
-  }, [theme]);
+    setMounted(true);
+  }, []);
+
+  if (!mounted) {
+    return <div className={cn("w-10 h-10", className)} />;
+  }
+
+  const currentTheme = theme === "system" ? resolvedTheme : theme;
+
+  const toggleTheme = () => {
+    setTheme(currentTheme === "light" ? "dark" : "light");
+  };
 
   return (
     <button
@@ -22,7 +31,7 @@ export const ThemeToggle = ({ className }: { className?: string }) => {
         className
       )}
       aria-label="Toggle theme"
-      title={`Switch to ${theme === "light" ? "dark" : "light"} mode`}
+      title={`Switch to ${currentTheme === "light" ? "dark" : "light"} mode`}
     >
       <svg
         xmlns="http://www.w3.org/2000/svg"
@@ -34,7 +43,7 @@ export const ThemeToggle = ({ className }: { className?: string }) => {
         strokeLinejoin="round"
         className={cn(
           "absolute w-5 h-5 text-foreground transition-all duration-300",
-          theme === "light"
+          currentTheme === "light"
             ? "rotate-0 scale-100 opacity-100"
             : "rotate-90 scale-0 opacity-0"
         )}
@@ -60,7 +69,7 @@ export const ThemeToggle = ({ className }: { className?: string }) => {
         strokeLinejoin="round"
         className={cn(
           "absolute w-5 h-5 text-foreground transition-all duration-300",
-          theme === "dark"
+          currentTheme === "dark"
             ? "rotate-0 scale-100 opacity-100"
             : "-rotate-90 scale-0 opacity-0"
         )}

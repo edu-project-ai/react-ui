@@ -10,7 +10,7 @@ import { fetchUserProfile, setCurrentUser } from "@/features/authorization/store
 // --- Ваші утиліти ---
 import { isAuthenticated } from "@/lib/token-provider";
 import { isEmailVerified } from "@/lib/auth-utils";
-import { checkUserProfileExists } from "@/features/authorization/utils/profile-checker";
+import { checkUserProfileExists } from "@/features/authorization";
 import { userApi } from "@/features/authorization/api/userApi";
 
 // Routes that don't require authentication

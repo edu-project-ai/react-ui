@@ -3,7 +3,7 @@ import * as monaco from 'monaco-editor';
 import type { editor as MonacoEditor } from 'monaco-editor';
 import toast from 'react-hot-toast';
 import { getLanguageFromPath } from '../utils/languageMap';
-import { writeFile } from '../api/fsApi';
+import { useWriteFileMutation } from '../api/ideProxyApi';
 import { useIdeStore } from '../store/useIdeStore';
 
 function fileUri(path: string): monaco.Uri {
@@ -17,6 +17,8 @@ export function useMonacoModels() {
   );
   const contentListeners = useRef<Map<string, monaco.IDisposable>>(new Map());
   const saveRef = useRef<(() => Promise<void>) | null>(null);
+
+  const [triggerWriteFile] = useWriteFileMutation();
 
   // Keep save function fresh via ref
   useEffect(() => {
@@ -33,10 +35,9 @@ export function useMonacoModels() {
 
       try {
         const content = model.getValue();
-        await writeFile(containerId, activeFilePath, content);
+        await triggerWriteFile({ containerId, path: activeFilePath, content }).unwrap();
         setSavedContent(activeFilePath, content);
         markClean(activeFilePath);
-        toast.success('File saved');
       } catch (err) {
         toast.error(
           `Save failed: ${err instanceof Error ? err.message : 'unknown error'}`,
@@ -108,6 +109,10 @@ export function useMonacoModels() {
     const uri = fileUri(path);
     const model = monaco.editor.getModel(uri);
     if (model) {
+      // Clear from editor before disposing to prevent "V is not iterable" crash
+      if (editorRef.current?.getModel() === model) {
+        editorRef.current.setModel(null);
+      }
       model.dispose();
     }
     // Clean up view state when disposing model

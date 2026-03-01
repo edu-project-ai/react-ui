@@ -1,87 +1,15 @@
-import { useState, useMemo, useCallback } from 'react';
 import { Loader2 } from 'lucide-react';
-import type { SearchResult } from '../api/fsApi';
-import { searchFiles } from '../api/fsApi';
-import { useIdeStore } from '../store/useIdeStore';
-
-// Debounce utility
-function useDebouncedCallback<T extends (...args: any[]) => any>(
-  callback: T,
-  delay: number,
-): T {
-  const [timeoutId, setTimeoutId] = useState<NodeJS.Timeout | null>(null);
-
-  return useCallback(
-    ((...args: Parameters<T>) => {
-      if (timeoutId) clearTimeout(timeoutId);
-
-      const newTimeoutId = setTimeout(() => {
-        callback(...args);
-      }, delay);
-
-      setTimeoutId(newTimeoutId);
-    }) as T,
-    [callback, delay, timeoutId],
-  );
-}
+import { useSearch } from '../hooks/useSearch';
 
 export function SearchPane() {
-  const [query, setQuery] = useState('');
-  const [results, setResults] = useState<SearchResult[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const containerId = useIdeStore((s) => s.containerId);
-  const openFile = useIdeStore((s) => s.openFile);
-
-  // Perform search
-  const performSearch = useCallback(
-    async (q: string) => {
-      if (!q.trim() || !containerId) {
-        setResults([]);
-        return;
-      }
-
-      setLoading(true);
-      setError(null);
-
-      try {
-        const res = await searchFiles(containerId, q.trim());
-        setResults(res);
-      } catch (err) {
-        console.error('Search failed:', err);
-        setError('Failed to search files');
-        setResults([]);
-      } finally {
-        setLoading(false);
-      }
-    },
-    [containerId],
-  );
-
-  // Debounced search (300ms)
-  const debouncedSearch = useDebouncedCallback(performSearch, 300);
-
-  const handleInputChange = (value: string) => {
-    setQuery(value);
-    debouncedSearch(value);
-  };
-
-  const handleResultClick = (result: SearchResult) => {
-    openFile(result.file);
-    // TODO: Jump to line in Monaco editor
-    // Will need to add jumpToLine functionality in useMonacoModels or useIdeStore
-  };
-
-  // Group results by file
-  const groupedResults = useMemo(() => {
-    const groups: Record<string, SearchResult[]> = {};
-    results.forEach((r) => {
-      if (!groups[r.file]) groups[r.file] = [];
-      groups[r.file].push(r);
-    });
-    return groups;
-  }, [results]);
+  const {
+    query,
+    loading,
+    error,
+    groupedResults,
+    handleInputChange,
+    handleResultClick,
+  } = useSearch();
 
   return (
     <div className="h-full flex flex-col bg-[#1e1e1e] text-[#cccccc]">
@@ -106,11 +34,9 @@ export function SearchPane() {
           </div>
         )}
 
-        {error && (
-          <div className="p-4 text-sm text-red-400">{error}</div>
-        )}
+        {error && <div className="p-4 text-sm text-red-400">{error}</div>}
 
-        {!loading && !error && query && results.length === 0 && (
+        {!loading && !error && query && Object.keys(groupedResults).length === 0 && (
           <div className="p-4 text-sm text-gray-500">No results found</div>
         )}
 
@@ -152,4 +78,3 @@ export function SearchPane() {
     </div>
   );
 }
-

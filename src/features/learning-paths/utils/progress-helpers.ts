@@ -42,7 +42,7 @@ export const getProgressTextColor = (
 /**
  * Check if checkpoint is completed
  */
-export const isCheckpointCompleted = (checkpoint: Checkpoint): boolean => {
+export const isCheckpointCompleted = (checkpoint: { isCompleted: boolean; items?: LearningItem[] }): boolean => {
   if (checkpoint.isCompleted !== undefined) {
     return checkpoint.isCompleted;
   }
@@ -91,9 +91,9 @@ export const getLearningPathProgress = (
   let completedTasks = 0;
 
   checkpoints.forEach((checkpoint) => {
-    if (checkpoint.tasks) {
-      totalTasks += checkpoint.tasks.length;
-      completedTasks += checkpoint.tasks.filter((t) => t.completed).length;
+    if (checkpoint.items) {
+      totalTasks += checkpoint.items.length;
+      completedTasks += checkpoint.items.filter((t: LearningItem) => t.isCompleted).length;
     }
   });
 

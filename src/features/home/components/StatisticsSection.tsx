@@ -1,6 +1,6 @@
 import React from "react";
 import { motion } from "motion/react";
-import { StatCard } from "@/features/dashboard/components/StatCard";
+import { StatCard } from "@/features/dashboard";
 
 const statistics = [
   {

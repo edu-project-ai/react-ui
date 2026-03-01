@@ -120,7 +120,9 @@ export interface TaskCompletionRequest {
  */
 export interface TaskCompletionResponse {
   message: string;
-  progress: LearningPathProgress;
+  itemId: string;
+  completed: boolean;
+  completionPercentage: number;
 }
 
 /**
@@ -143,6 +145,7 @@ export interface LearningPath {
   totalCheckpoints?: number;
   progressPercentage?: number;
   progress?: LearningPathProgress;
+  generationStatus?: string;
 }
 
 /**
@@ -159,7 +162,6 @@ export interface CreateLearningPathRequest {
   timelineMonths: number;
   careerObjective: string;
   numberOfCheckpoints: number;
-  tasksPerCheckpoint: number;
   includeCapstone: boolean;
   generationMode: string;
   testResults: Record<string, unknown> | null;

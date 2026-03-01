@@ -2,7 +2,9 @@
 export * from "./home";
 export * from "./dashboard";
 export * from "./learning-paths";
-export * from "./progress";
+export * from "./progress/api/statisticsApi";
+export type { UserStatistics, ActivityCalendarData } from "./progress/types";
+export type { LearningPathProgress as ProgressLearningPathProgress } from "./progress/types";
 
 // All page components
 export { HomePage } from "./home";

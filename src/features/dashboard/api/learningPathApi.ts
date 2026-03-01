@@ -1,5 +1,5 @@
 import { apiSlice } from "@/store/api/apiSlice";
-import type { Checkpoint, CheckpointDetail, LearningPath } from "@/features/learning-paths/services/type";
+import type { Checkpoint, LearningPath } from "@/features/learning-paths";
 
 export const learningPathApi = apiSlice.injectEndpoints({
   endpoints: (builder) => ({

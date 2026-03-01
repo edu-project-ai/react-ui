@@ -1,25 +1,31 @@
 import React from "react";
 import { useAppSelector } from "@/hooks/useReduxHooks";
 
+const getGreeting = () => {
+  const h = new Date().getHours();
+  if (h < 12) return "Good morning";
+  if (h < 17) return "Good afternoon";
+  return "Good evening";
+};
+
 export const WelcomeHeader: React.FC = () => {
   const user = useAppSelector((state) => state.user.currentUser);
-  const currentDate = new Date().toLocaleDateString("en-US", {
+  const name = user?.displayName || user?.firstName || "there";
+  const today = new Date().toLocaleDateString("en-US", {
     weekday: "long",
-    year: "numeric",
     month: "long",
     day: "numeric",
+    year: "numeric",
   });
 
-  // Capitalize first letter of the date
-  const formattedDate =
-    currentDate.charAt(0).toUpperCase() + currentDate.slice(1);
-
   return (
-    <div className="mb-8">
-      <h1 className="text-3xl font-bold text-foreground">
-        Welcome, {user?.displayName || user?.firstName || "User"}! 👋
-      </h1>
-      <p className="text-muted-foreground mt-1">{formattedDate}</p>
+    <div className="flex items-start justify-between gap-4 pb-2 border-b border-border">
+      <div>
+        <h1 className="text-2xl font-bold text-foreground tracking-tight">
+          {getGreeting()}, {name} 👋
+        </h1>
+        <p className="text-sm text-muted-foreground mt-0.5">{today}</p>
+      </div>
     </div>
   );
 };

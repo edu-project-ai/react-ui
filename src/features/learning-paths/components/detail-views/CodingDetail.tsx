@@ -1,4 +1,5 @@
 import { memo } from "react";
+import Markdown from 'react-markdown'
 import { useParams, useNavigate } from "react-router-dom";
 import { useGetCodingTaskQuery } from "../../api/learningPathsApi";
 import type { CodeItem } from "../../services/type";
@@ -80,9 +81,11 @@ export const CodingDetail = memo(({ item }: CodingDetailProps) => {
               Failed to load coding task details. Please try again.
             </p>
           ) : codingTask?.description ? (
-            <p className="text-sm text-muted-foreground leading-relaxed">
-              {codingTask.description}
-            </p>
+            <div className="p-4 overflow-y-auto h-full">
+              <div className="prose prose-slate dark:prose-invert max-w-none">
+                <Markdown>{codingTask.description}</Markdown>
+              </div>
+            </div>
           ) : null}
         </div>
       </div>

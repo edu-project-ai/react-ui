@@ -1,296 +1,181 @@
 import { useState, memo, useCallback } from "react";
-import { useForm, type Control } from "react-hook-form";
+import { useForm } from "react-hook-form";
 import { useNavigate } from "react-router-dom";
 import { useAppSelector } from "@/hooks/useReduxHooks";
 import { useLearningPaths } from "../hooks/useLearningPaths";
 import { Spinner } from "@/components/ui/spinner";
-import FormInput from "@/components/form/FormInput";
-import FormTextarea from "@/components/form/FormTextarea";
-import FormSelect, { type SelectOption } from "@/components/form/FormSelect";
-import FormCheckbox from "@/components/form/FormCheckbox";
-import FormArrayInput from "@/components/form/FormArrayInput";
-import { TECHNOLOGY_LABELS } from "@/features/onboarding/constants";
+import { Form } from "@/components/ui/form";
+import {
+  TECHNOLOGY_LABELS,
+  TECHNOLOGY_TO_BACKEND_MAP,
+} from "@/features/onboarding";
 import type { CreateLearningPathRequest } from "../services/type";
+import { Step1Goal } from "./steps/Step1Goal";
+import { Step2Background } from "./steps/Step2Background";
+import { Step3Customize } from "./steps/Step3Customize";
+
+// Reverse map: backend slug → display name (e.g. "csharp" → "C#")
+const SLUG_TO_DISPLAY: Record<string, string> = Object.fromEntries(
+  Object.entries(TECHNOLOGY_TO_BACKEND_MAP).map(([key, slug]) => [
+    slug,
+    TECHNOLOGY_LABELS[key as keyof typeof TECHNOLOGY_LABELS] || key,
+  ])
+);
 
 // ============================================================================
-// Constants - Options for select fields
+// Step Progress Bar
 // ============================================================================
 
-const CAREER_OBJECTIVE_OPTIONS: SelectOption[] = [
-  { value: "career_change", label: "Career Change" },
-  { value: "skill_upgrade", label: "Skill Upgrade" },
-  { value: "hobby", label: "Hobby / Personal Interest" },
-];
-
-const USER_LEVEL_OPTIONS: SelectOption[] = [
-  { value: "beginner", label: "Beginner" },
-  { value: "intermediate", label: "Intermediate" },
-  { value: "advanced", label: "Advanced" },
-];
-
-const LEARNING_STYLE_OPTIONS: SelectOption[] = [
-  { value: "hands-on", label: "Hands-on (Projects)" },
-  { value: "theory-first", label: "Theory First (Reading/Lectures)" },
-  { value: "mixed", label: "Mixed" },
-];
-
-// ============================================================================
-// Form Section Components - Memoized to prevent unnecessary re-renders
-// ============================================================================
-
-interface FormSectionProps {
-  title: string;
-  children: React.ReactNode;
+interface StepProgressProps {
+  currentStep: number;
+  stepLabels: string[];
+  stepDescriptions: string[];
 }
 
-const FormSection = memo(({ title, children }: FormSectionProps) => (
-  <div className="bg-card rounded-xl p-6 shadow-sm border border-border">
-    <h2 className="text-xl font-semibold text-foreground mb-4">{title}</h2>
-    <div className="grid gap-6">{children}</div>
-  </div>
-));
-FormSection.displayName = "FormSection";
+const StepProgress = memo(
+  ({ currentStep, stepLabels, stepDescriptions }: StepProgressProps) => {
+    const total = stepLabels.length;
+    return (
+      <div className="mb-8">
+        {/* Step dots + labels */}
+        <div className="flex items-start">
+          {stepLabels.map((label, idx) => {
+            const stepNum = idx + 1;
+            const isDone = stepNum < currentStep;
+            const isActive = stepNum === currentStep;
+            return (
+              <div key={idx} className="flex items-start flex-1 last:flex-none">
+                <div className="flex flex-col items-center min-w-0">
+                  <div
+                    className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-semibold shrink-0 transition-all duration-300 ${
+                      isDone
+                        ? "bg-primary text-primary-foreground"
+                        : isActive
+                        ? "bg-primary text-primary-foreground ring-4 ring-primary/20 scale-110"
+                        : "bg-muted text-muted-foreground"
+                    }`}
+                  >
+                    {isDone ? "✓" : stepNum}
+                  </div>
+                  <span
+                    className={`text-xs font-medium mt-1.5 text-center hidden sm:block max-w-[80px] leading-tight ${
+                      isActive ? "text-foreground" : "text-muted-foreground"
+                    }`}
+                  >
+                    {label}
+                  </span>
+                </div>
+                {idx < total - 1 && (
+                  <div
+                    className={`flex-1 h-0.5 mt-4 mx-2 transition-all duration-500 ${
+                      stepNum < currentStep ? "bg-primary" : "bg-border"
+                    }`}
+                  />
+                )}
+              </div>
+            );
+          })}
+        </div>
 
-// ============================================================================
-// Target Role & Focus Section
-// ============================================================================
-
-interface TargetRoleSectionProps {
-  control: Control<CreateLearningPathRequest>;
-}
-
-const TargetRoleSection = memo(({ control }: TargetRoleSectionProps) => (
-  <FormSection title="Target Role & Focus">
-    <FormInput
-      name="target_role"
-      label="Target Role *"
-      control={control}
-      rules={{ required: "Target role is required" }}
-      placeholder="e.g. Junior DevOps Engineer"
-    />
-
-    <FormTextarea
-      name="specific_focus"
-      label="Specific Focus Areas *"
-      control={control}
-      rules={{ required: "Specific focus is required" }}
-      placeholder="e.g. Linux Administration, AWS, Docker, Kubernetes"
-      rows={3}
-    />
-
-    <FormSelect
-      name="career_objective"
-      label="Career Objective"
-      control={control}
-      options={CAREER_OBJECTIVE_OPTIONS}
-    />
-  </FormSection>
-));
-TargetRoleSection.displayName = "TargetRoleSection";
-
-// ============================================================================
-// Experience & Skills Section
-// ============================================================================
-
-interface ExperienceSectionProps {
-  control: Control<CreateLearningPathRequest>;
-}
-
-const ExperienceSection = memo(({ control }: ExperienceSectionProps) => (
-  <FormSection title="Experience & Skills">
-    <div className="grid md:grid-cols-2 gap-6">
-      <FormSelect
-        name="user_level"
-        label="Current Level"
-        control={control}
-        options={USER_LEVEL_OPTIONS}
-      />
-
-      <FormInput
-        name="experience"
-        label="Experience Description"
-        control={control}
-        placeholder="e.g. 2 years as QA Engineer"
-      />
-    </div>
-
-    <FormArrayInput
-      name="known_technologies"
-      label="Known Technologies (comma separated)"
-      control={control}
-      placeholder="HTML, CSS, JavaScript"
-    />
-
-    <FormArrayInput
-      name="avoid_technologies"
-      label="Technologies to Avoid (comma separated)"
-      control={control}
-      placeholder="Azure, GCP, Jenkins"
-    />
-  </FormSection>
-));
-ExperienceSection.displayName = "ExperienceSection";
-
-// ============================================================================
-// Preferences & Settings Section
-// ============================================================================
-
-interface PreferencesSectionProps {
-  control: Control<CreateLearningPathRequest>;
-}
-
-const PreferencesSection = memo(({ control }: PreferencesSectionProps) => (
-  <FormSection title="Preferences & Settings">
-    <div className="grid md:grid-cols-2 gap-6">
-      <FormInput
-        name="weekly_hours"
-        label="Weekly Hours"
-        type="number"
-        control={control}
-        rules={{ min: 1, max: 168 }}
-      />
-
-      <FormInput
-        name="timeline_months"
-        label="Timeline (Months)"
-        type="number"
-        control={control}
-        rules={{ min: 1, max: 24 }}
-      />
-    </div>
-
-    <div className="grid md:grid-cols-2 gap-6">
-      <FormSelect
-        name="learning_style"
-        label="Learning Style"
-        control={control}
-        options={LEARNING_STYLE_OPTIONS}
-      />
-
-      <FormArrayInput
-        name="preferred_resources"
-        label="Preferred Resources (comma separated)"
-        control={control}
-        placeholder="Official Docs, Video Courses"
-      />
-    </div>
-
-    <div className="grid md:grid-cols-2 gap-6">
-      <FormInput
-        name="number_of_checkpoints"
-        label="Number of Checkpoints"
-        type="number"
-        control={control}
-        rules={{ min: 3, max: 15 }}
-      />
-
-      <FormInput
-        name="tasks_per_checkpoint"
-        label="Tasks per Checkpoint"
-        type="number"
-        control={control}
-        rules={{ min: 3, max: 12 }}
-      />
-    </div>
-
-    <FormCheckbox
-      name="include_capstone"
-      label="Include Capstone Project"
-      control={control}
-    />
-  </FormSection>
-));
-PreferencesSection.displayName = "PreferencesSection";
-
-// ============================================================================
-// Error Alert Component
-// ============================================================================
-
-interface ErrorAlertProps {
-  message: string | null;
-}
-
-const ErrorAlert = memo(({ message }: ErrorAlertProps) => {
-  if (!message) return null;
-
-  return (
-    <div className="mb-6 bg-destructive/10 border border-destructive/20 rounded-lg p-4 text-destructive">
-      {message}
-    </div>
-  );
-});
-ErrorAlert.displayName = "ErrorAlert";
-
-// ============================================================================
-// Form Actions Component
-// ============================================================================
-
-interface FormActionsProps {
-  isSubmitting: boolean;
-  onCancel: () => void;
-}
-
-const FormActions = memo(({ isSubmitting, onCancel }: FormActionsProps) => (
-  <div className="flex justify-end gap-4">
-    <button
-      type="button"
-      onClick={onCancel}
-      className="px-6 py-2 border border-border rounded-lg text-foreground hover:bg-muted transition-colors"
-    >
-      Cancel
-    </button>
-    <button
-      type="submit"
-      disabled={isSubmitting}
-      className="px-6 py-2 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
-    >
-      {isSubmitting && <Spinner size="sm" className="mr-2" />}
-      Generate Roadmap
-    </button>
-  </div>
-));
-FormActions.displayName = "FormActions";
+        {/* Active step description */}
+        <div className="mt-6 p-4 bg-muted/40 rounded-xl border border-border/50">
+          <p className="text-sm font-semibold text-foreground">
+            Step {currentStep} of {total}: {stepLabels[currentStep - 1]}
+          </p>
+          <p className="text-sm text-muted-foreground mt-0.5">
+            {stepDescriptions[currentStep - 1]}
+          </p>
+        </div>
+      </div>
+    );
+  }
+);
+StepProgress.displayName = "StepProgress";
 
 // ============================================================================
 // Main Page Component
 // ============================================================================
 
+const STEP_LABELS = ["Your Goal", "Background", "Customize"];
+const STEP_DESCRIPTIONS = [
+  "Tell us what role you're aiming for and what drives you.",
+  "Share your current experience so we can tailor the difficulty.",
+  "Fine-tune the structure, pace, and content format of your roadmap.",
+];
+
 export const CreateLearningPathPage = () => {
   const navigate = useNavigate();
-  const { skillLevel, technologies } = useAppSelector(
-    (state) => state.onboarding
-  );
+  const { skillLevel, technologies } = useAppSelector((state) => state.onboarding);
+  const currentUser = useAppSelector((state) => state.user.currentUser);
   const { createLearningPath, isCreating } = useLearningPaths();
+  const [step, setStep] = useState(1);
   const [error, setError] = useState<string | null>(null);
 
-  const { handleSubmit, control } = useForm<CreateLearningPathRequest>({
+  // Derive level: onboarding state has priority (fresh wizard), fallback to saved profile
+  const derivedLevel =
+    (skillLevel?.toLowerCase() as string | null) ||
+    currentUser?.programmingLevel ||
+    "beginner";
+
+  // Derive known technologies: onboarding state has priority, fallback to profile slugs
+  const derivedTechnologies =
+    technologies.length > 0
+      ? technologies.map((t) => TECHNOLOGY_LABELS[t] || t)
+      : (currentUser?.programmingTechnologies ?? []).map(
+          (slug) => SLUG_TO_DISPLAY[slug] || slug
+        );
+
+  const derivedExperience = currentUser
+    ? `I am a ${currentUser.programmingLevel} developer with experience in ${derivedTechnologies.join(", ")}.`
+    : "";
+
+  const methods = useForm<CreateLearningPathRequest>({
+    mode: "onChange",
     defaultValues: {
-      user_level: skillLevel || "beginner",
-      experience: "",
-      known_technologies: technologies.map((t) => TECHNOLOGY_LABELS[t] || t),
-      weekly_hours: 10,
-      learning_style: "hands-on",
-      target_role: "",
-      specific_focus: "",
-      timeline_months: 6,
-      career_objective: "career_change",
-      number_of_checkpoints: 8,
-      tasks_per_checkpoint: 4,
-      include_capstone: true,
-      generation_mode: "full",
-      test_results: null,
-      avoid_technologies: [],
-      preferred_resources: ["Official Documentation", "Interactive Labs"],
+      // Step 1
+      targetRole: "",
+      specificFocus: "",
+      careerObjective: "career_change",
+      // Step 2
+      userLevel: derivedLevel,
+      experience: derivedExperience,
+      knownTechnologies: derivedTechnologies,
+      avoidTechnologies: [],
+      // Step 3
+      weeklyHours: 10,
+      timelineMonths: 6,
+      learningStyle: "hands-on",
+      preferredResources: ["Official Documentation", "Interactive Labs"],
+      numberOfCheckpoints: 8,
+      theoryItemsPerCheckpoint: 4,
+      codeItemsPerCheckpoint: 2,
+      quizItemsPerCheckpoint: 1,
+      includeCapstone: true,
+      // Hidden
+      generationMode: "hierarchical",
+      testResults: null,
     },
   });
 
-  const handleCancel = useCallback(() => {
-    navigate("/learning-paths");
-  }, [navigate]);
+  const { handleSubmit, control, trigger, setValue, watch } = methods;
+
+  const handleCancel = useCallback(() => navigate("/learning-paths"), [navigate]);
+
+  const handleNext = async () => {
+    const fieldsToValidate =
+      step === 1
+        ? (["targetRole", "specificFocus"] as const)
+        : (["experience"] as const);
+    const valid = await trigger(fieldsToValidate);
+    if (valid) setStep((s) => s + 1);
+  };
 
   const onSubmit = async (data: CreateLearningPathRequest) => {
+    // Safety guard: the form can only be submitted on the last step.
+    // Prevents browser Enter-key behaviour from firing the request mid-wizard.
+    if (step !== 3) return;
     setError(null);
-
+    console.log('Step 3 called here')
     const result = await createLearningPath(data);
     if (result.success) {
       navigate("/learning-paths");
@@ -300,25 +185,94 @@ export const CreateLearningPathPage = () => {
   };
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-3xl">
-      {/* Page Header */}
+    <div className="container mx-auto px-4 py-8 max-w-2xl">
+      {/* Page header */}
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-foreground mb-2">
-          Create New Learning Path
-        </h1>
+        <h1 className="text-3xl font-bold text-foreground mb-1">Create New Roadmap</h1>
         <p className="text-muted-foreground">
-          Define your goals and preferences to generate a personalized roadmap.
+          Answer a few questions and we'll generate a personalized learning path just for you.
         </p>
       </div>
 
-      <ErrorAlert message={error} />
+      <StepProgress
+        currentStep={step}
+        stepLabels={STEP_LABELS}
+        stepDescriptions={STEP_DESCRIPTIONS}
+      />
 
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
-        <TargetRoleSection control={control} />
-        <ExperienceSection control={control} />
-        <PreferencesSection control={control} />
-        <FormActions isSubmitting={isCreating} onCancel={handleCancel} />
-      </form>
+      {error && (
+        <div className="mb-6 bg-destructive/10 border border-destructive/20 rounded-xl p-4 text-destructive text-sm">
+          {error}
+        </div>
+      )}
+
+      <Form {...methods}>
+        <form
+          onSubmit={(e) => e.preventDefault()}
+          onKeyDown={(e) => {
+            // Prevent Enter key from submitting the form on any step
+            if (e.key === "Enter") e.preventDefault();
+          }}
+        >
+          {/* ─────────────── Step 1: Your Goal ─────────────── */}
+          {step === 1 && (
+            <Step1Goal control={control} setValue={setValue} watch={watch} />
+          )}
+
+          {/* ─────────────── Step 2: Your Background ─────────────── */}
+          {step === 2 && (
+            <Step2Background control={control} setValue={setValue} watch={watch} />
+          )}
+
+          {/* ─────────────── Step 3: Customize ─────────────── */}
+          {step === 3 && (
+            <Step3Customize control={control} setValue={setValue} watch={watch} />
+          )}
+
+          {/* ─────────────── Navigation ─────────────── */}
+          <div className="flex justify-between items-center mt-6">
+            <button
+              type="button"
+              onClick={handleCancel}
+              className="px-4 py-2 text-sm border border-border rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+            >
+              Cancel
+            </button>
+
+            <div className="flex gap-3">
+              {step > 1 && (
+                <button
+                  type="button"
+                  onClick={() => setStep((s) => s - 1)}
+                  className="px-4 py-2 text-sm border border-border rounded-lg text-foreground hover:bg-muted transition-colors"
+                >
+                  ← Back
+                </button>
+              )}
+
+              {step < 3 ? (
+                <button
+                  type="button"
+                  onClick={handleNext}
+                  className="px-6 py-2 text-sm bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg font-medium transition-colors"
+                >
+                  Continue →
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleSubmit(onSubmit)}
+                  disabled={isCreating}
+                  className="px-6 py-2 text-sm bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                >
+                  {isCreating && <Spinner size="sm" />}
+                  Generate Roadmap
+                </button>
+              )}
+            </div>
+          </div>
+        </form>
+      </Form>
     </div>
   );
 };

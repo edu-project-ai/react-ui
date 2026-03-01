@@ -1,4 +1,3 @@
-// Utility functions for the IDE feature
-// Future: Add helpers for terminal commands, file paths, etc.
-
-export {};
+export { getLanguageFromPath } from './languageMap';
+export { getFileIcon, sortFileTreeNodes, toTreeData } from './fileTreeUtils';
+export { getFileName } from './pathUtils';

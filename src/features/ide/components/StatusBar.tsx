@@ -1,6 +1,8 @@
+import type { CursorPosition } from '../types';
+
 interface StatusBarProps {
   language: string | null;
-  cursorPosition: { line: number; column: number } | null;
+  cursorPosition: CursorPosition | null;
 }
 
 export function StatusBar({ language, cursorPosition }: StatusBarProps) {

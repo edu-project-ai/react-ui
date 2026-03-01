@@ -2,7 +2,6 @@ import { apiSlice } from "@/store/api/apiSlice";
 import type {
   LearningPath,
   CheckpointDetail,
-  TaskCompletionRequest,
   TaskCompletionResponse,
   CreateLearningPathRequest,
   CreateLearningPathResponse,
@@ -75,7 +74,7 @@ export const learningPathsApi = apiSlice.injectEndpoints({
         method: "PUT",
         body: data,
       }),
-      async onQueryStarted({ learningPathId, itemId, data }, { dispatch, queryFulfilled }) {
+      async onQueryStarted(_arg, { queryFulfilled }) {
         try {
           await queryFulfilled;
         } catch {

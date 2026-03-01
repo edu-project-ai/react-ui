@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { Allotment } from 'allotment';
 import { ArrowLeft, Loader2 } from 'lucide-react';
 
-import { useGetCodingTaskQuery } from '@/features/learning-paths/api/learningPathsApi';
+import { useGetCodingTaskQuery } from '@/features/learning-paths';
 import { useIdeStore } from '../store/useIdeStore';
 import { ActivityBar } from '../components/ActivityBar';
 import { Sidebar } from '../components/Sidebar';

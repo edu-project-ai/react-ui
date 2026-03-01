@@ -1,9 +1,5 @@
 import { create } from 'zustand';
-
-export interface Tab {
-  path: string;
-  isDirty: boolean;
-}
+import type { Tab } from '../types';
 
 interface IdeState {
   containerId: string | null;
