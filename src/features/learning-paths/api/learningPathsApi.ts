@@ -8,6 +8,8 @@ import type {
   TheoryResourceDetail,
   CodingTaskDetail,
   QuizDetail,
+  QuizSubmitRequest,
+  QuizSubmitResult,
 } from "../services/type";
 
 /**
@@ -124,6 +126,18 @@ export const learningPathsApi = apiSlice.injectEndpoints({
       ],
     }),
 
+    // Submit a quiz answer for a single question
+    submitQuizAnswer: builder.mutation<
+      QuizSubmitResult,
+      { learningPathId: string; itemId: string; data: QuizSubmitRequest }
+    >({
+      query: ({ learningPathId, itemId, data }) => ({
+        url: `/api/learning-paths/${learningPathId}/items/${itemId}/quiz/submit`,
+        method: "POST",
+        body: data,
+      }),
+    }),
+
   }),
 });
 
@@ -137,4 +151,5 @@ export const {
   useGetTheoryResourceQuery,
   useGetCodingTaskQuery,
   useGetQuizQuery,
+  useSubmitQuizAnswerMutation,
 } = learningPathsApi;

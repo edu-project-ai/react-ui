@@ -230,12 +230,54 @@ export interface CodingTaskDetail {
 }
 
 /**
+ * Text input validation config (for text_input question type)
+ */
+export interface TextInputValidation {
+  strategy: 'exact_match' | 'fuzzy_match' | 'regex';
+  accepted_answers: string[];
+}
+
+/**
+ * Quiz Question (single question with options)
+ */
+export interface QuizQuestion {
+  id: string;
+  questionText: string;
+  questionType: 'single_choice' | 'multiple_choice' | 'text_input';
+  options: Record<string, string>;
+  correctAnswerIndices: number[] | null;
+  validation: TextInputValidation | null;
+  explanation: string | null;
+  order: number;
+}
+
+/**
  * Quiz Detail (for lazy loading)
  */
 export interface QuizDetail {
   id: string;
   learningItemId: string;
-  question: string;
-  options: string[];
+  title: string;
+  questions: QuizQuestion[];
+}
+
+/**
+ * Quiz answer submission request
+ */
+export interface QuizSubmitRequest {
+  questionId: string;
+  selectedAnswerIndex?: number;
+  selectedAnswerIndices?: number[];
+  textAnswer?: string;
+}
+
+/**
+ * Quiz answer submission result
+ */
+export interface QuizSubmitResult {
+  isCorrect: boolean;
+  correctAnswerIndex: number;
+  correctAnswerIndices: number[] | null;
+  explanation: string | null;
 }
 

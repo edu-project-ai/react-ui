@@ -1,17 +1,54 @@
-import { memo } from "react";
+import { memo, useState, useCallback } from "react";
+import { useParams } from "react-router-dom";
 import type { QuizItem } from "../../services/type";
+import {
+  useGetQuizQuery,
+  useSubmitQuizAnswerMutation,
+  useUpdateTaskCompletionMutation,
+} from "../../api/learningPathsApi";
+
+// ============================================================================
+// Types
+// ============================================================================
+
+type QuizPhase = "intro" | "question" | "results";
+
+interface QuestionAttempt {
+  questionId: string;
+  isCorrect: boolean;
+  correctAnswerIndex: number;
+  correctAnswerIndices: number[] | null;
+  explanation: string | null;
+}
+
+// ============================================================================
+// Helpers
+// ============================================================================
+
+function parseOptions(options: Record<string, string>): string[] {
+  return Object.keys(options)
+    .sort()
+    .map((key) => options[key]);
+}
+
+function getScoreLabel(percentage: number): string {
+  if (percentage >= 80) return "Відмінно!";
+  if (percentage >= 60) return "Добре!";
+  return "Варто повторити";
+}
+
+function getScoreColor(percentage: number): string {
+  if (percentage >= 80) return "text-green-600 dark:text-green-400";
+  if (percentage >= 60) return "text-yellow-600 dark:text-yellow-400";
+  return "text-red-600 dark:text-red-400";
+}
 
 // ============================================================================
 // Icon Components
 // ============================================================================
 
 const QuizIcon = memo(() => (
-  <svg
-    className="w-5 h-5"
-    fill="none"
-    stroke="currentColor"
-    viewBox="0 0 24 24"
-  >
+  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
     <path
       strokeLinecap="round"
       strokeLinejoin="round"
@@ -22,6 +59,530 @@ const QuizIcon = memo(() => (
 ));
 QuizIcon.displayName = "QuizIcon";
 
+const CheckCircleIcon = memo(() => (
+  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth={2}
+      d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+    />
+  </svg>
+));
+CheckCircleIcon.displayName = "CheckCircleIcon";
+
+const XCircleIcon = memo(() => (
+  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth={2}
+      d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"
+    />
+  </svg>
+));
+XCircleIcon.displayName = "XCircleIcon";
+
+// ============================================================================
+// Intro View
+// ============================================================================
+
+interface IntroViewProps {
+  title: string;
+  questionsCount: number;
+  onStart: () => void;
+}
+
+const IntroView = memo(({ title, questionsCount, onStart }: IntroViewProps) => (
+  <div className="bg-card rounded-xl shadow-sm border border-border overflow-hidden">
+    <div className="p-6 md:p-8">
+      <div className="flex items-center gap-3 mb-6">
+        <div className="p-2 rounded-lg bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400">
+          <QuizIcon />
+        </div>
+        <div>
+          <span className="text-xs font-medium uppercase tracking-wider text-purple-600 dark:text-purple-400">
+            Quiz
+          </span>
+          <div className="text-sm text-muted-foreground mt-0.5">
+            {questionsCount} питань
+          </div>
+        </div>
+      </div>
+
+      <h2 className="text-2xl font-bold text-foreground mb-8">{title}</h2>
+
+      <div className="bg-purple-50/50 dark:bg-purple-900/10 rounded-lg p-6 border border-purple-200 dark:border-purple-800 mb-8">
+        <ul className="space-y-2 text-sm text-muted-foreground">
+          <li className="flex items-center gap-2">
+            <span className="w-1.5 h-1.5 rounded-full bg-purple-500 flex-shrink-0" />
+            Питання бувають різних типів: одна правильна відповідь, декілька або текстовий ввід
+          </li>
+          <li className="flex items-center gap-2">
+            <span className="w-1.5 h-1.5 rounded-full bg-purple-500 flex-shrink-0" />
+            Після вибору натисніть «Підтвердити»
+          </li>
+          <li className="flex items-center gap-2">
+            <span className="w-1.5 h-1.5 rounded-full bg-purple-500 flex-shrink-0" />
+            Результат буде показано після кожної відповіді
+          </li>
+        </ul>
+      </div>
+
+      <button
+        type="button"
+        onClick={onStart}
+        className="w-full py-3 px-6 rounded-lg font-semibold bg-purple-600 hover:bg-purple-700 text-white shadow transition-colors"
+      >
+        Розпочати квіз
+      </button>
+    </div>
+  </div>
+));
+IntroView.displayName = "IntroView";
+
+// ============================================================================
+// Question View
+// ============================================================================
+
+interface QuestionViewProps {
+  questionText: string;
+  questionType: 'single_choice' | 'multiple_choice' | 'text_input';
+  options: string[];
+  currentIndex: number;
+  total: number;
+  selectedOption: number | null;
+  selectedOptions: Set<number>;
+  textAnswer: string;
+  submittedAttempt: QuestionAttempt | null;
+  isSubmitting: boolean;
+  isLastQuestion: boolean;
+  onSelectOption: (index: number) => void;
+  onToggleOption: (index: number) => void;
+  onTextChange: (value: string) => void;
+  onSubmit: () => void;
+  onNext: () => void;
+}
+
+const QuestionView = memo(
+  ({
+    questionText,
+    questionType,
+    options,
+    currentIndex,
+    total,
+    selectedOption,
+    selectedOptions,
+    textAnswer,
+    submittedAttempt,
+    isSubmitting,
+    isLastQuestion,
+    onSelectOption,
+    onToggleOption,
+    onTextChange,
+    onSubmit,
+    onNext,
+  }: QuestionViewProps) => {
+    const progressPct = (currentIndex / total) * 100;
+    const isAnswered = submittedAttempt !== null;
+
+    const isSubmitDisabled = isAnswered || isSubmitting || (
+      questionType === 'single_choice' ? selectedOption === null :
+      questionType === 'multiple_choice' ? selectedOptions.size === 0 :
+      textAnswer.trim().length === 0
+    );
+
+    return (
+      <div className="bg-card rounded-xl shadow-sm border border-border overflow-hidden">
+        <div className="p-6 md:p-8">
+          {/* Progress */}
+          <div className="mb-6">
+            <div className="flex justify-between text-sm text-muted-foreground mb-2">
+              <span>Питання {currentIndex + 1} з {total}</span>
+              <span>{Math.round(progressPct)}%</span>
+            </div>
+            <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
+              <div
+                className="h-full bg-purple-500 rounded-full transition-all duration-300"
+                style={{ width: `${progressPct}%` }}
+              />
+            </div>
+          </div>
+
+          {/* Question type badge */}
+          {questionType === 'multiple_choice' && (
+            <div className="mb-3">
+              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">
+                Оберіть всі правильні відповіді
+              </span>
+            </div>
+          )}
+          {questionType === 'text_input' && (
+            <div className="mb-3">
+              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300">
+                Введіть відповідь текстом
+              </span>
+            </div>
+          )}
+
+          {/* Question */}
+          <h3 className="text-lg font-semibold text-foreground mb-6 leading-relaxed">
+            {questionText}
+          </h3>
+
+          {/* Answer input area */}
+          {questionType === 'text_input' ? (
+            <div className="mb-6">
+              <textarea
+                rows={3}
+                value={textAnswer}
+                onChange={(e) => onTextChange(e.target.value)}
+                disabled={isAnswered}
+                placeholder="Введіть вашу відповідь..."
+                className="w-full px-4 py-3 rounded-lg border-2 border-border focus:border-purple-500 focus:outline-none bg-background text-foreground text-sm resize-none transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+              />
+            </div>
+          ) : questionType === 'multiple_choice' ? (
+            <div className="space-y-3 mb-6">
+              {options.map((option, index) => {
+                const isSelected = selectedOptions.has(index);
+                const correctSet = new Set(submittedAttempt?.correctAnswerIndices ?? []);
+                const isCorrectAnswer = isAnswered && correctSet.has(index);
+                const isWrongSelected = isAnswered && isSelected && !correctSet.has(index);
+
+                let cardClass =
+                  "w-full text-left px-4 py-3 rounded-lg border-2 transition-all text-sm font-medium ";
+
+                if (!isAnswered) {
+                  cardClass += isSelected
+                    ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300"
+                    : "border-border bg-background hover:border-blue-300 hover:bg-blue-50/30 dark:hover:bg-blue-900/10 text-foreground cursor-pointer";
+                } else if (isCorrectAnswer) {
+                  cardClass +=
+                    "border-green-500 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300";
+                } else if (isWrongSelected) {
+                  cardClass +=
+                    "border-red-500 bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300";
+                } else {
+                  cardClass +=
+                    "border-border bg-muted/30 text-muted-foreground opacity-60";
+                }
+
+                return (
+                  <button
+                    key={index}
+                    type="button"
+                    className={cardClass}
+                    onClick={() => !isAnswered && onToggleOption(index)}
+                    disabled={isAnswered}
+                  >
+                    <div className="flex items-center gap-3">
+                      <span className={`flex-shrink-0 w-6 h-6 rounded border-2 border-current flex items-center justify-center text-xs font-bold transition-colors ${isSelected && !isAnswered ? "bg-blue-500 text-white border-blue-500" : ""}`}>
+                        {isSelected ? "✓" : ""}
+                      </span>
+                      <span>{option}</span>
+                      {isAnswered && isCorrectAnswer && (
+                        <span className="ml-auto text-green-600 dark:text-green-400">
+                          <CheckCircleIcon />
+                        </span>
+                      )}
+                      {isAnswered && isWrongSelected && (
+                        <span className="ml-auto text-red-600 dark:text-red-400">
+                          <XCircleIcon />
+                        </span>
+                      )}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          ) : (
+            /* single_choice */
+            <div className="space-y-3 mb-6">
+              {options.map((option, index) => {
+                const isSelected = selectedOption === index;
+                const isCorrectAnswer =
+                  isAnswered && index === submittedAttempt!.correctAnswerIndex;
+                const isWrongSelected =
+                  isAnswered && isSelected && !submittedAttempt!.isCorrect;
+
+                let cardClass =
+                  "w-full text-left px-4 py-3 rounded-lg border-2 transition-all text-sm font-medium ";
+
+                if (!isAnswered) {
+                  cardClass += isSelected
+                    ? "border-purple-500 bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300"
+                    : "border-border bg-background hover:border-purple-300 hover:bg-purple-50/30 dark:hover:bg-purple-900/10 text-foreground cursor-pointer";
+                } else if (isCorrectAnswer) {
+                  cardClass +=
+                    "border-green-500 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300";
+                } else if (isWrongSelected) {
+                  cardClass +=
+                    "border-red-500 bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300";
+                } else {
+                  cardClass +=
+                    "border-border bg-muted/30 text-muted-foreground opacity-60";
+                }
+
+                return (
+                  <button
+                    key={index}
+                    type="button"
+                    className={cardClass}
+                    onClick={() => !isAnswered && onSelectOption(index)}
+                    disabled={isAnswered}
+                  >
+                    <div className="flex items-center gap-3">
+                      <span className="flex-shrink-0 w-6 h-6 rounded-full border-2 border-current flex items-center justify-center text-xs font-bold">
+                        {String.fromCharCode(65 + index)}
+                      </span>
+                      <span>{option}</span>
+                      {isAnswered && isCorrectAnswer && (
+                        <span className="ml-auto text-green-600 dark:text-green-400">
+                          <CheckCircleIcon />
+                        </span>
+                      )}
+                      {isAnswered && isWrongSelected && (
+                        <span className="ml-auto text-red-600 dark:text-red-400">
+                          <XCircleIcon />
+                        </span>
+                      )}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Feedback */}
+          {submittedAttempt && (
+            <div
+              className={`rounded-lg p-4 mb-6 border ${
+                submittedAttempt.isCorrect
+                  ? "bg-green-50 dark:bg-green-900/10 border-green-200 dark:border-green-800"
+                  : "bg-red-50 dark:bg-red-900/10 border-red-200 dark:border-red-800"
+              }`}
+            >
+              <div className="flex items-center gap-2 mb-1">
+                <span
+                  className={
+                    submittedAttempt.isCorrect
+                      ? "text-green-600 dark:text-green-400"
+                      : "text-red-600 dark:text-red-400"
+                  }
+                >
+                  {submittedAttempt.isCorrect ? <CheckCircleIcon /> : <XCircleIcon />}
+                </span>
+                <span
+                  className={`font-semibold text-sm ${
+                    submittedAttempt.isCorrect
+                      ? "text-green-700 dark:text-green-300"
+                      : "text-red-700 dark:text-red-300"
+                  }`}
+                >
+                  {submittedAttempt.isCorrect ? "Правильно!" : "Неправильно"}
+                </span>
+              </div>
+              {submittedAttempt.explanation && (
+                <p className="text-sm text-muted-foreground mt-1 leading-relaxed">
+                  {submittedAttempt.explanation}
+                </p>
+              )}
+            </div>
+          )}
+
+          {/* Action button */}
+          {!submittedAttempt ? (
+            <button
+              type="button"
+              onClick={onSubmit}
+              disabled={isSubmitDisabled}
+              className="w-full py-3 px-6 rounded-lg font-semibold bg-purple-600 hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed text-white shadow transition-colors flex items-center justify-center gap-2"
+            >
+              {isSubmitting ? (
+                <>
+                  <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    />
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+                    />
+                  </svg>
+                  Перевіряю...
+                </>
+              ) : (
+                "Підтвердити відповідь"
+              )}
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={onNext}
+              className="w-full py-3 px-6 rounded-lg font-semibold bg-purple-600 hover:bg-purple-700 text-white shadow transition-colors"
+            >
+              {isLastQuestion ? "Переглянути результати" : "Наступне питання"}
+            </button>
+          )}
+        </div>
+      </div>
+    );
+  }
+);
+QuestionView.displayName = "QuestionView";
+
+// ============================================================================
+// Results View
+// ============================================================================
+
+interface ResultsViewProps {
+  quizTitle: string;
+  attempts: QuestionAttempt[];
+  questions: Array<{ id: string; questionText: string }>;
+  isCompleted: boolean;
+  isMarkingComplete: boolean;
+  onMarkComplete: () => void;
+  onRetry: () => void;
+}
+
+const ResultsView = memo(
+  ({
+    quizTitle,
+    attempts,
+    questions,
+    isCompleted,
+    isMarkingComplete,
+    onMarkComplete,
+    onRetry,
+  }: ResultsViewProps) => {
+    const correct = attempts.filter((a) => a.isCorrect).length;
+    const total = attempts.length;
+    const percentage = total > 0 ? Math.round((correct / total) * 100) : 0;
+
+    return (
+      <div className="bg-card rounded-xl shadow-sm border border-border overflow-hidden">
+        <div className="p-6 md:p-8">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="p-2 rounded-lg bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400">
+              <QuizIcon />
+            </div>
+            <span className="text-xs font-medium uppercase tracking-wider text-purple-600 dark:text-purple-400">
+              Результати
+            </span>
+          </div>
+
+          <h2 className="text-xl font-bold text-foreground mb-6">{quizTitle}</h2>
+
+          {/* Score */}
+          <div className="text-center py-6 mb-6 bg-muted/30 rounded-lg border border-border">
+            <div className={`text-5xl font-bold mb-1 ${getScoreColor(percentage)}`}>
+              {correct} / {total}
+            </div>
+            <div className="text-sm text-muted-foreground mb-3">
+              {percentage}% правильних відповідей
+            </div>
+            <span
+              className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
+                percentage >= 80
+                  ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300"
+                  : percentage >= 60
+                  ? "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300"
+                  : "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300"
+              }`}
+            >
+              {getScoreLabel(percentage)}
+            </span>
+          </div>
+
+          {/* Question breakdown */}
+          <div className="space-y-2 mb-6">
+            {questions.map((q, idx) => {
+              const attempt = attempts.find((a) => a.questionId === q.id);
+              return (
+                <div
+                  key={q.id}
+                  className="flex items-start gap-3 p-3 rounded-lg bg-muted/20 border border-border"
+                >
+                  <span
+                    className={`flex-shrink-0 mt-0.5 ${
+                      attempt?.isCorrect
+                        ? "text-green-600 dark:text-green-400"
+                        : "text-red-600 dark:text-red-400"
+                    }`}
+                  >
+                    {attempt?.isCorrect ? <CheckCircleIcon /> : <XCircleIcon />}
+                  </span>
+                  <span className="text-sm text-foreground leading-relaxed">
+                    <span className="font-medium text-muted-foreground mr-1">
+                      {idx + 1}.
+                    </span>
+                    {q.questionText}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Actions */}
+          <div className="flex flex-col sm:flex-row gap-3">
+            <button
+              type="button"
+              onClick={onRetry}
+              className="flex-1 py-3 px-6 rounded-lg font-semibold border-2 border-purple-500 text-purple-600 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-900/20 transition-colors"
+            >
+              Пройти знову
+            </button>
+            {!isCompleted ? (
+              <button
+                type="button"
+                onClick={onMarkComplete}
+                disabled={isMarkingComplete}
+                className="flex-1 py-3 px-6 rounded-lg font-semibold bg-purple-600 hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed text-white shadow transition-colors flex items-center justify-center gap-2"
+              >
+                {isMarkingComplete ? (
+                  <>
+                    <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      />
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+                      />
+                    </svg>
+                    Збереження...
+                  </>
+                ) : (
+                  "Позначити як виконане"
+                )}
+              </button>
+            ) : (
+              <div className="flex-1 py-3 px-6 rounded-lg font-semibold bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-300 flex items-center justify-center gap-2 border border-green-200 dark:border-green-800">
+                <CheckCircleIcon />
+                Виконано
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+);
+ResultsView.displayName = "ResultsView";
+
 // ============================================================================
 // Main Component
 // ============================================================================
@@ -30,51 +591,211 @@ export interface QuizDetailProps {
   item: QuizItem;
 }
 
-/**
- * Detail view component for Quiz learning items.
- * Quiz functionality is currently under development.
- */
 export const QuizDetail = memo(({ item }: QuizDetailProps) => {
-  return (
-    <div className="bg-card rounded-xl shadow-sm border border-border overflow-hidden">
-      <div className="p-6 md:p-8">
-        {/* Header */}
-        <div className="flex items-center gap-3 mb-6">
-          <div className="p-2 rounded-lg bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400">
-            <QuizIcon />
-          </div>
-          <div>
-            <span className="text-xs font-medium uppercase tracking-wider text-purple-600 dark:text-purple-400">
-              Quiz
-            </span>
-            <div className="text-sm text-muted-foreground mt-0.5">
-              {item.questionsCount} питань{item.questionsCount !== 1 ? "" : "ня"}
-            </div>
-          </div>
-        </div>
+  const { id: learningPathId } = useParams<{ id: string }>();
 
-        {/* Title */}
-        <h2 className="text-2xl font-bold text-foreground mb-6">{item.title}</h2>
+  const { data: quiz, isLoading, error } = useGetQuizQuery(
+    { learningPathId: learningPathId!, itemId: item.id },
+    { skip: !learningPathId }
+  );
 
-        {/* Under Development Notice */}
-        <div className="bg-purple-50/50 dark:bg-purple-900/10 rounded-lg p-8 text-center border border-purple-200 dark:border-purple-800">
-          <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-purple-100 dark:bg-purple-900/30 mb-4">
-            <span className="text-4xl">🚧</span>
-          </div>
-          <h3 className="text-lg font-semibold text-foreground mb-2">В процесі розробки</h3>
-          <p className="text-sm text-muted-foreground mb-4">
-            Функціонал квізів зараз в активній розробці. Незабаром тут з'являться інтерактивні питання з відповідями.
-          </p>
-          <div className="inline-flex items-center gap-2 text-xs text-purple-600 dark:text-purple-400 bg-purple-100 dark:bg-purple-900/30 px-3 py-1.5 rounded-full">
-            <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-purple-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-purple-500"></span>
-            </span>
-            Очікується в наступному оновленні
-          </div>
+  const [submitAnswer, { isLoading: isSubmitting }] = useSubmitQuizAnswerMutation();
+  const [updateCompletion, { isLoading: isMarkingComplete }] =
+    useUpdateTaskCompletionMutation();
+
+  const [phase, setPhase] = useState<QuizPhase>("intro");
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [attempts, setAttempts] = useState<QuestionAttempt[]>([]);
+  const [selectedOption, setSelectedOption] = useState<number | null>(null);
+  const [selectedOptions, setSelectedOptions] = useState<Set<number>>(new Set());
+  const [textAnswer, setTextAnswer] = useState("");
+  const [submittedAttempt, setSubmittedAttempt] = useState<QuestionAttempt | null>(null);
+
+  const handleStart = useCallback(() => {
+    setPhase("question");
+    setCurrentIndex(0);
+    setAttempts([]);
+    setSelectedOption(null);
+    setSelectedOptions(new Set());
+    setTextAnswer("");
+    setSubmittedAttempt(null);
+  }, []);
+
+  const handleSelectOption = useCallback((index: number) => {
+    setSelectedOption(index);
+  }, []);
+
+  const handleToggleOption = useCallback((index: number) => {
+    setSelectedOptions((prev) => {
+      const next = new Set(prev);
+      if (next.has(index)) next.delete(index);
+      else next.add(index);
+      return next;
+    });
+  }, []);
+
+  const handleTextChange = useCallback((value: string) => {
+    setTextAnswer(value);
+  }, []);
+
+  const handleSubmit = useCallback(async () => {
+    if (!quiz || !learningPathId) return;
+
+    const sorted = [...quiz.questions].sort((a, b) => a.order - b.order);
+    const question = sorted[currentIndex];
+    if (!question) return;
+
+    const payload =
+      question.questionType === "multiple_choice"
+        ? { questionId: question.id, selectedAnswerIndices: [...selectedOptions] }
+        : question.questionType === "text_input"
+        ? { questionId: question.id, textAnswer }
+        : { questionId: question.id, selectedAnswerIndex: selectedOption! };
+
+    try {
+      const result = await submitAnswer({
+        learningPathId,
+        itemId: item.id,
+        data: payload,
+      }).unwrap();
+
+      const attempt: QuestionAttempt = {
+        questionId: question.id,
+        isCorrect: result.isCorrect,
+        correctAnswerIndex: result.correctAnswerIndex,
+        correctAnswerIndices: result.correctAnswerIndices ?? null,
+        explanation: result.explanation,
+      };
+      setSubmittedAttempt(attempt);
+      setAttempts((prev) => [...prev, attempt]);
+    } catch {
+      // keep state so user can retry submit
+    }
+  }, [quiz, selectedOption, selectedOptions, textAnswer, currentIndex, submitAnswer, learningPathId, item.id]);
+
+  const handleNext = useCallback(() => {
+    if (!quiz) return;
+    const sorted = [...quiz.questions].sort((a, b) => a.order - b.order);
+    if (currentIndex < sorted.length - 1) {
+      setCurrentIndex((prev) => prev + 1);
+      setSelectedOption(null);
+      setSelectedOptions(new Set());
+      setTextAnswer("");
+      setSubmittedAttempt(null);
+    } else {
+      setPhase("results");
+    }
+  }, [quiz, currentIndex]);
+
+  const handleRetry = useCallback(() => {
+    setPhase("intro");
+    setCurrentIndex(0);
+    setAttempts([]);
+    setSelectedOption(null);
+    setSelectedOptions(new Set());
+    setTextAnswer("");
+    setSubmittedAttempt(null);
+  }, []);
+
+  const handleMarkComplete = useCallback(async () => {
+    if (!learningPathId) return;
+    try {
+      await updateCompletion({
+        learningPathId,
+        itemId: item.id,
+        data: { completed: true },
+      }).unwrap();
+    } catch {
+      // ignore
+    }
+  }, [updateCompletion, learningPathId, item.id]);
+
+  if (isLoading) {
+    return (
+      <div className="bg-card rounded-xl shadow-sm border border-border p-8">
+        <div className="flex items-center justify-center gap-3 text-muted-foreground">
+          <svg className="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
+            <circle
+              className="opacity-25"
+              cx="12"
+              cy="12"
+              r="10"
+              stroke="currentColor"
+              strokeWidth="4"
+            />
+            <path
+              className="opacity-75"
+              fill="currentColor"
+              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+            />
+          </svg>
+          <span className="text-sm">Завантаження квізу...</span>
         </div>
       </div>
-    </div>
+    );
+  }
+
+  if (error || !quiz) {
+    return (
+      <div className="bg-card rounded-xl shadow-sm border border-border p-8">
+        <div className="text-center">
+          <p className="text-sm text-destructive mb-2">Не вдалося завантажити квіз.</p>
+          <p className="text-xs text-muted-foreground">Спробуйте оновити сторінку</p>
+        </div>
+      </div>
+    );
+  }
+
+  const sortedQuestions = [...quiz.questions].sort((a, b) => a.order - b.order);
+  const currentQuestion = sortedQuestions[currentIndex];
+  const currentOptions = parseOptions(currentQuestion?.options ?? {});
+
+  if (phase === "intro") {
+    return (
+      <IntroView
+        title={quiz.title}
+        questionsCount={sortedQuestions.length}
+        onStart={handleStart}
+      />
+    );
+  }
+
+  if (phase === "question" && currentQuestion) {
+    return (
+      <QuestionView
+        questionText={currentQuestion.questionText}
+        questionType={currentQuestion.questionType}
+        options={currentOptions}
+        currentIndex={currentIndex}
+        total={sortedQuestions.length}
+        selectedOption={selectedOption}
+        selectedOptions={selectedOptions}
+        textAnswer={textAnswer}
+        submittedAttempt={submittedAttempt}
+        isSubmitting={isSubmitting}
+        isLastQuestion={currentIndex === sortedQuestions.length - 1}
+        onSelectOption={handleSelectOption}
+        onToggleOption={handleToggleOption}
+        onTextChange={handleTextChange}
+        onSubmit={handleSubmit}
+        onNext={handleNext}
+      />
+    );
+  }
+
+  return (
+    <ResultsView
+      quizTitle={quiz.title}
+      attempts={attempts}
+      questions={sortedQuestions.map((q) => ({
+        id: q.id,
+        questionText: q.questionText,
+      }))}
+      isCompleted={item.isCompleted}
+      isMarkingComplete={isMarkingComplete}
+      onMarkComplete={handleMarkComplete}
+      onRetry={handleRetry}
+    />
   );
 });
 
