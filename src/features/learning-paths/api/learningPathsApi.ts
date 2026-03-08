@@ -138,6 +138,22 @@ export const learningPathsApi = apiSlice.injectEndpoints({
       }),
     }),
 
+    // Update learning path active status (activate / deactivate)
+    updateLearningPathStatus: builder.mutation<
+      LearningPath,
+      { id: string; isActive: boolean }
+    >({
+      query: ({ id, isActive }) => ({
+        url: `/api/learning-paths/${id}/status`,
+        method: "PATCH",
+        body: { isActive },
+      }),
+      invalidatesTags: (_result, _error, { id }) => [
+        { type: "LearningPath", id },
+        { type: "LearningPath", id: "LIST" },
+      ],
+    }),
+
   }),
 });
 
@@ -152,4 +168,5 @@ export const {
   useGetCodingTaskQuery,
   useGetQuizQuery,
   useSubmitQuizAnswerMutation,
+  useUpdateLearningPathStatusMutation,
 } = learningPathsApi;

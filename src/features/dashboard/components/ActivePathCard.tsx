@@ -8,16 +8,10 @@ interface ActivePathCardProps {
   path: LearningPath;
 }
 
-const getPlanStatus = (planJson?: Record<string, unknown> | null): string | null => {
-  if (!planJson) return null;
-  const status = planJson.Status ?? planJson.status;
-  return typeof status === "string" ? status : null;
-};
-
 export const ActivePathCard: React.FC<ActivePathCardProps> = ({ path }) => {
   const navigate = useNavigate();
-  const progress = path.progress?.percentage || 0;
-  const isGenerating = getPlanStatus(path.planJson) === "generating";
+  const progress = path.progress?.percentage ?? 0;
+  const isGenerating = path.generationStatus === "generating" || path.generationStatus === "pending";
 
   return (
     <div className={`bg-card border rounded-xl p-6 ${isGenerating ? "border-blue-300 dark:border-blue-800" : "border-border"}`}>

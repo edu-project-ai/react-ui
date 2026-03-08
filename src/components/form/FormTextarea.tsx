@@ -2,6 +2,7 @@ import {
   type Control,
   type FieldValues,
   type Path,
+  type RegisterOptions,
 } from "react-hook-form";
 import {
   FormControl,
@@ -17,6 +18,7 @@ interface FormTextareaProps<TFieldValues extends FieldValues = FieldValues>
   name: Path<TFieldValues>;
   label?: string;
   control: Control<TFieldValues>;
+  rules?: RegisterOptions<TFieldValues>;
 }
 
 function FormTextarea<TFieldValues extends FieldValues = FieldValues>({
@@ -26,12 +28,14 @@ function FormTextarea<TFieldValues extends FieldValues = FieldValues>({
   control,
   className,
   rows = 3,
+  rules,
   ...rest
 }: FormTextareaProps<TFieldValues>) {
   return (
     <FormField
       control={control}
       name={name}
+      rules={rules}
       render={({ field }) => (
         <FormItem className="w-full">
           {label && <FormLabel>{label}</FormLabel>}

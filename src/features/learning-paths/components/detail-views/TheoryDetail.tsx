@@ -82,6 +82,44 @@ export const TheoryDetail = memo(({ item }: TheoryDetailProps) => {
           </div>
         )}
 
+        {/* Resources extracted from content */}
+        {theoryResource?.content && (() => {
+          const linkRegex = /\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g;
+          const links: { text: string; url: string }[] = [];
+          let match;
+          while ((match = linkRegex.exec(theoryResource.content!)) !== null) {
+            links.push({ text: match[1], url: match[2] });
+          }
+          if (links.length === 0) return null;
+          return (
+            <div className="mt-6 p-4 bg-muted/30 rounded-lg border border-border">
+              <h3 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                </svg>
+                Resources
+              </h3>
+              <ul className="space-y-2">
+                {links.map((link, i) => (
+                  <li key={i}>
+                    <a
+                      href={link.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-sm text-primary hover:underline flex items-center gap-1.5"
+                    >
+                      <svg className="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                      </svg>
+                      {link.text}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          );
+        })()}
+
         {!isLoading && !error && !theoryResource?.content && (
           <div className="bg-muted/30 rounded-lg p-8 text-center border border-dashed border-border">
             <p className="text-muted-foreground">

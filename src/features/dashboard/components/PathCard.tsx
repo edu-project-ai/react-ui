@@ -8,15 +8,6 @@ interface PathCardProps {
   path: LearningPath;
 }
 
-/**
- * Helper to extract status from planJson
- */
-const getPlanStatus = (planJson?: Record<string, unknown> | null): string | null => {
-  if (!planJson) return null;
-  const status = planJson.Status ?? planJson.status;
-  return typeof status === "string" ? status : null;
-};
-
 const GeneratingBadge = () => (
   <span className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-blue-500/10 text-blue-600 dark:text-blue-400 animate-pulse">
     <Loader2 className="w-3 h-3 mr-1 animate-spin" />
@@ -27,8 +18,9 @@ const GeneratingBadge = () => (
 export const PathCard: React.FC<PathCardProps> = ({ path }) => {
   const navigate = useNavigate();
   const progress = path.progress?.percentage || 0;
-  const planStatus = getPlanStatus(path.planJson);
-  const isGenerating = planStatus === "generating";
+  const isGenerating =
+    path.generationStatus === "generating" ||
+    path.generationStatus === "pending";
 
   const handleClick = () => {
     if (!isGenerating) {
@@ -36,7 +28,6 @@ export const PathCard: React.FC<PathCardProps> = ({ path }) => {
     }
   };
 
-  // Determine card styling based on state
   const cardClassName = isGenerating
     ? "bg-blue-50/30 dark:bg-blue-900/10 border-blue-300 dark:border-blue-800 cursor-wait flex flex-col h-full"
     : "hover:shadow-md transition-all cursor-pointer group flex flex-col h-full";
@@ -78,27 +69,27 @@ export const PathCard: React.FC<PathCardProps> = ({ path }) => {
           {path.description}
         </p>
 
-      <div className="mt-auto">
-        {!isGenerating ? (
-          <>
-            <div className="flex justify-between text-xs mb-1.5">
-              <span className="text-muted-foreground">Progress</span>
-              <span className="font-medium">{progress}%</span>
+        <div className="mt-auto">
+          {!isGenerating ? (
+            <>
+              <div className="flex justify-between text-xs mb-1.5">
+                <span className="text-muted-foreground">Progress</span>
+                <span className="font-medium">{progress}%</span>
+              </div>
+              <div className="h-1.5 bg-secondary rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-primary rounded-full transition-all duration-500"
+                  style={{ width: `${progress}%` }}
+                />
+              </div>
+            </>
+          ) : (
+            <div className="text-xs text-blue-600 dark:text-blue-400 flex items-center">
+              <Loader2 className="w-3 h-3 mr-1.5 animate-spin" />
+              <span>Creating roadmap...</span>
             </div>
-            <div className="h-1.5 bg-secondary rounded-full overflow-hidden">
-              <div
-                className="h-full bg-primary rounded-full transition-all duration-500"
-                style={{ width: `${progress}%` }}
-              />
-            </div>
-          </>
-        ) : (
-          <div className="text-xs text-blue-600 dark:text-blue-400 flex items-center">
-            <SpinnerIcon className="w-3 h-3 mr-1.5" />
-            <span>Creating roadmap...</span>
-          </div>
-        )}
-      </div>
+          )}
+        </div>
       </CardContent>
     </Card>
   );

@@ -1,7 +1,8 @@
-import { memo } from "react";
-import { Link, useParams } from "react-router-dom";
-import { useGetLearningPathByIdQuery } from "../api/learningPathsApi";
+import { memo, useState as useStateReact } from "react";
+import { Link, useParams, useNavigate } from "react-router-dom";
+import { useGetLearningPathByIdQuery, useUpdateLearningPathStatusMutation } from "../api/learningPathsApi";
 import { Spinner } from "@/components/ui/spinner";
+import { Button } from "@/components/ui/button";
 import type { CheckpointPreview } from "../services/type";
 import { ProgressBar } from "./ProgressBar";
 import { CheckpointTimelineItem } from "./CheckpointTimelineItem";
@@ -267,11 +268,24 @@ CheckpointsTimeline.displayName = "CheckpointsTimeline";
 
 export const LearningPathDetailPage = () => {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const {
     data: learningPath,
     isLoading,
     error,
   } = useGetLearningPathByIdQuery(id!);
+  const [updateStatus, { isLoading: isDeactivating }] = useUpdateLearningPathStatusMutation();
+  const [showDeactivateConfirm, setShowDeactivateConfirm] = useStateReact(false);
+
+  const handleDeactivate = async () => {
+    if (!id) return;
+    try {
+      await updateStatus({ id, isActive: false }).unwrap();
+      navigate("/learning-paths");
+    } catch {
+      // error handled by RTK Query
+    }
+  };
 
   if (isLoading) {
     return <LoadingState />;
@@ -312,6 +326,43 @@ export const LearningPathDetailPage = () => {
           checkpointCount={learningPath.checkpoints.length}
           progress={learningPath.progress}
         />
+
+        {/* Deactivate Roadmap */}
+        {learningPath.isActive && !isGenerating && (
+          <div className="mt-4">
+            {showDeactivateConfirm ? (
+              <div className="flex items-center gap-3 p-4 bg-destructive/5 border border-destructive/20 rounded-lg">
+                <p className="text-sm text-foreground flex-1">
+                  Are you sure you want to deactivate this roadmap? It will be hidden from all pages.
+                </p>
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={handleDeactivate}
+                  disabled={isDeactivating}
+                >
+                  {isDeactivating ? "Deactivating..." : "Confirm"}
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowDeactivateConfirm(false)}
+                >
+                  Cancel
+                </Button>
+              </div>
+            ) : (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowDeactivateConfirm(true)}
+                className="text-destructive border-destructive/30 hover:bg-destructive/10"
+              >
+                Deactivate Roadmap
+              </Button>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Checkpoints Section */}

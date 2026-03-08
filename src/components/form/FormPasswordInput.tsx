@@ -3,6 +3,7 @@ import {
   type Control,
   type FieldValues,
   type Path,
+  type RegisterOptions,
 } from "react-hook-form";
 import {
   FormControl,
@@ -18,6 +19,7 @@ interface FormPasswordInputProps<TFieldValues extends FieldValues = FieldValues>
   name: Path<TFieldValues>;
   label?: string;
   control: Control<TFieldValues>;
+  rules?: RegisterOptions<TFieldValues>;
 }
 
 function FormPasswordInput<TFieldValues extends FieldValues = FieldValues>({
@@ -26,6 +28,7 @@ function FormPasswordInput<TFieldValues extends FieldValues = FieldValues>({
   placeholder = "Enter your password",
   control,
   className,
+  rules,
   ...rest
 }: FormPasswordInputProps<TFieldValues>) {
   const [showPassword, setShowPassword] = useState(false);
@@ -34,6 +37,7 @@ function FormPasswordInput<TFieldValues extends FieldValues = FieldValues>({
     <FormField
       control={control}
       name={name}
+      rules={rules}
       render={({ field }) => (
         <FormItem className="w-full">
           {label && <FormLabel>{label}</FormLabel>}

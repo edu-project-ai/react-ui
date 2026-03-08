@@ -1,4 +1,4 @@
-import { memo, useState, useCallback } from "react";
+import { memo, useState, useCallback, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import type { QuizItem } from "../../services/type";
 import {
@@ -21,6 +21,34 @@ interface QuestionAttempt {
   explanation: string | null;
 }
 
+interface SavedQuizResult {
+  score: number;
+  total: number;
+  percentage: number;
+  date: string;
+}
+
+// ============================================================================
+// Local Storage helpers
+// ============================================================================
+
+function getSavedResult(itemId: string): SavedQuizResult | null {
+  try {
+    const raw = localStorage.getItem(`quiz-result-${itemId}`);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
+function saveResult(itemId: string, result: SavedQuizResult): void {
+  try {
+    localStorage.setItem(`quiz-result-${itemId}`, JSON.stringify(result));
+  } catch {
+    // ignore storage errors
+  }
+}
+
 // ============================================================================
 // Helpers
 // ============================================================================
@@ -32,9 +60,9 @@ function parseOptions(options: Record<string, string>): string[] {
 }
 
 function getScoreLabel(percentage: number): string {
-  if (percentage >= 80) return "Відмінно!";
-  if (percentage >= 60) return "Добре!";
-  return "Варто повторити";
+  if (percentage >= 80) return "Excellent!";
+  if (percentage >= 60) return "Good!";
+  return "Needs Review";
 }
 
 function getScoreColor(percentage: number): string {
@@ -90,10 +118,12 @@ XCircleIcon.displayName = "XCircleIcon";
 interface IntroViewProps {
   title: string;
   questionsCount: number;
+  previousResult?: SavedQuizResult | null;
+  isCompleted: boolean;
   onStart: () => void;
 }
 
-const IntroView = memo(({ title, questionsCount, onStart }: IntroViewProps) => (
+const IntroView = memo(({ title, questionsCount, previousResult, isCompleted, onStart }: IntroViewProps) => (
   <div className="bg-card rounded-xl shadow-sm border border-border overflow-hidden">
     <div className="p-6 md:p-8">
       <div className="flex items-center gap-3 mb-6">
@@ -105,26 +135,56 @@ const IntroView = memo(({ title, questionsCount, onStart }: IntroViewProps) => (
             Quiz
           </span>
           <div className="text-sm text-muted-foreground mt-0.5">
-            {questionsCount} питань
+            {questionsCount} questions
           </div>
         </div>
       </div>
 
       <h2 className="text-2xl font-bold text-foreground mb-8">{title}</h2>
 
+      {/* Previous result */}
+      {previousResult && (
+        <div className={`rounded-lg p-4 border mb-6 ${
+          previousResult.percentage >= 80
+            ? "bg-green-50/50 dark:bg-green-900/10 border-green-200 dark:border-green-800"
+            : "bg-yellow-50/50 dark:bg-yellow-900/10 border-yellow-200 dark:border-yellow-800"
+        }`}>
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-foreground">Previous Result</p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                {new Date(previousResult.date).toLocaleDateString()}
+              </p>
+            </div>
+            <div className="text-right">
+              <p className={`text-lg font-bold ${getScoreColor(previousResult.percentage)}`}>
+                {previousResult.score}/{previousResult.total}
+              </p>
+              <p className="text-xs text-muted-foreground">{previousResult.percentage}%</p>
+            </div>
+          </div>
+          {isCompleted && (
+            <div className="mt-2 flex items-center gap-1.5 text-xs text-green-600 dark:text-green-400">
+              <CheckCircleIcon />
+              <span>Completed</span>
+            </div>
+          )}
+        </div>
+      )}
+
       <div className="bg-purple-50/50 dark:bg-purple-900/10 rounded-lg p-6 border border-purple-200 dark:border-purple-800 mb-8">
         <ul className="space-y-2 text-sm text-muted-foreground">
           <li className="flex items-center gap-2">
             <span className="w-1.5 h-1.5 rounded-full bg-purple-500 flex-shrink-0" />
-            Питання бувають різних типів: одна правильна відповідь, декілька або текстовий ввід
+            Questions can be single choice, multiple choice, or text input
           </li>
           <li className="flex items-center gap-2">
             <span className="w-1.5 h-1.5 rounded-full bg-purple-500 flex-shrink-0" />
-            Після вибору натисніть «Підтвердити»
+            After selecting, click "Confirm" to submit your answer
           </li>
           <li className="flex items-center gap-2">
             <span className="w-1.5 h-1.5 rounded-full bg-purple-500 flex-shrink-0" />
-            Результат буде показано після кожної відповіді
+            Results are shown after each answer. Score 80%+ to auto-complete.
           </li>
         </ul>
       </div>
@@ -134,7 +194,7 @@ const IntroView = memo(({ title, questionsCount, onStart }: IntroViewProps) => (
         onClick={onStart}
         className="w-full py-3 px-6 rounded-lg font-semibold bg-purple-600 hover:bg-purple-700 text-white shadow transition-colors"
       >
-        Розпочати квіз
+        {previousResult ? "Retry Quiz" : "Start Quiz"}
       </button>
     </div>
   </div>
@@ -198,7 +258,7 @@ const QuestionView = memo(
           {/* Progress */}
           <div className="mb-6">
             <div className="flex justify-between text-sm text-muted-foreground mb-2">
-              <span>Питання {currentIndex + 1} з {total}</span>
+              <span>Question {currentIndex + 1} of {total}</span>
               <span>{Math.round(progressPct)}%</span>
             </div>
             <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
@@ -213,14 +273,14 @@ const QuestionView = memo(
           {questionType === 'multiple_choice' && (
             <div className="mb-3">
               <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">
-                Оберіть всі правильні відповіді
+                Select all correct answers
               </span>
             </div>
           )}
           {questionType === 'text_input' && (
             <div className="mb-3">
               <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300">
-                Введіть відповідь текстом
+                Enter your answer as text
               </span>
             </div>
           )}
@@ -238,7 +298,7 @@ const QuestionView = memo(
                 value={textAnswer}
                 onChange={(e) => onTextChange(e.target.value)}
                 disabled={isAnswered}
-                placeholder="Введіть вашу відповідь..."
+                placeholder="Enter your answer..."
                 className="w-full px-4 py-3 rounded-lg border-2 border-border focus:border-purple-500 focus:outline-none bg-background text-foreground text-sm resize-none transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
               />
             </div>
@@ -380,7 +440,7 @@ const QuestionView = memo(
                       : "text-red-700 dark:text-red-300"
                   }`}
                 >
-                  {submittedAttempt.isCorrect ? "Правильно!" : "Неправильно"}
+                  {submittedAttempt.isCorrect ? "Correct!" : "Incorrect"}
                 </span>
               </div>
               {submittedAttempt.explanation && (
@@ -416,10 +476,10 @@ const QuestionView = memo(
                       d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
                     />
                   </svg>
-                  Перевіряю...
+                  Checking...
                 </>
               ) : (
-                "Підтвердити відповідь"
+                "Confirm Answer"
               )}
             </button>
           ) : (
@@ -428,7 +488,7 @@ const QuestionView = memo(
               onClick={onNext}
               className="w-full py-3 px-6 rounded-lg font-semibold bg-purple-600 hover:bg-purple-700 text-white shadow transition-colors"
             >
-              {isLastQuestion ? "Переглянути результати" : "Наступне питання"}
+              {isLastQuestion ? "View Results" : "Next Question"}
             </button>
           )}
         </div>
@@ -447,8 +507,6 @@ interface ResultsViewProps {
   attempts: QuestionAttempt[];
   questions: Array<{ id: string; questionText: string }>;
   isCompleted: boolean;
-  isMarkingComplete: boolean;
-  onMarkComplete: () => void;
   onRetry: () => void;
 }
 
@@ -458,8 +516,6 @@ const ResultsView = memo(
     attempts,
     questions,
     isCompleted,
-    isMarkingComplete,
-    onMarkComplete,
     onRetry,
   }: ResultsViewProps) => {
     const correct = attempts.filter((a) => a.isCorrect).length;
@@ -474,7 +530,7 @@ const ResultsView = memo(
               <QuizIcon />
             </div>
             <span className="text-xs font-medium uppercase tracking-wider text-purple-600 dark:text-purple-400">
-              Результати
+              Results
             </span>
           </div>
 
@@ -486,7 +542,7 @@ const ResultsView = memo(
               {correct} / {total}
             </div>
             <div className="text-sm text-muted-foreground mb-3">
-              {percentage}% правильних відповідей
+              {percentage}% correct answers
             </div>
             <span
               className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
@@ -537,42 +593,21 @@ const ResultsView = memo(
               onClick={onRetry}
               className="flex-1 py-3 px-6 rounded-lg font-semibold border-2 border-purple-500 text-purple-600 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-900/20 transition-colors"
             >
-              Пройти знову
+              Retry Quiz
             </button>
-            {!isCompleted ? (
-              <button
-                type="button"
-                onClick={onMarkComplete}
-                disabled={isMarkingComplete}
-                className="flex-1 py-3 px-6 rounded-lg font-semibold bg-purple-600 hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed text-white shadow transition-colors flex items-center justify-center gap-2"
-              >
-                {isMarkingComplete ? (
-                  <>
-                    <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
-                      <circle
-                        className="opacity-25"
-                        cx="12"
-                        cy="12"
-                        r="10"
-                        stroke="currentColor"
-                        strokeWidth="4"
-                      />
-                      <path
-                        className="opacity-75"
-                        fill="currentColor"
-                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
-                      />
-                    </svg>
-                    Збереження...
-                  </>
-                ) : (
-                  "Позначити як виконане"
-                )}
-              </button>
-            ) : (
+            {isCompleted ? (
               <div className="flex-1 py-3 px-6 rounded-lg font-semibold bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-300 flex items-center justify-center gap-2 border border-green-200 dark:border-green-800">
                 <CheckCircleIcon />
-                Виконано
+                Completed
+              </div>
+            ) : percentage >= 80 ? (
+              <div className="flex-1 py-3 px-6 rounded-lg font-semibold bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-300 flex items-center justify-center gap-2 border border-green-200 dark:border-green-800">
+                <CheckCircleIcon />
+                Auto-completed (80%+)
+              </div>
+            ) : (
+              <div className="flex-1 py-3 px-6 rounded-lg font-semibold bg-yellow-100 dark:bg-yellow-900/20 text-yellow-700 dark:text-yellow-300 flex items-center justify-center gap-2 border border-yellow-200 dark:border-yellow-800 text-sm">
+                Score 80% or higher to complete
               </div>
             )}
           </div>
@@ -600,7 +635,7 @@ export const QuizDetail = memo(({ item }: QuizDetailProps) => {
   );
 
   const [submitAnswer, { isLoading: isSubmitting }] = useSubmitQuizAnswerMutation();
-  const [updateCompletion, { isLoading: isMarkingComplete }] =
+  const [updateCompletion] =
     useUpdateTaskCompletionMutation();
 
   const [phase, setPhase] = useState<QuizPhase>("intro");
@@ -610,6 +645,33 @@ export const QuizDetail = memo(({ item }: QuizDetailProps) => {
   const [selectedOptions, setSelectedOptions] = useState<Set<number>>(new Set());
   const [textAnswer, setTextAnswer] = useState("");
   const [submittedAttempt, setSubmittedAttempt] = useState<QuestionAttempt | null>(null);
+  const [previousResult] = useState<SavedQuizResult | null>(() => getSavedResult(item.id));
+
+  // Auto-complete when phase changes to results and score >= 80%
+  useEffect(() => {
+    if (phase === "results" && attempts.length > 0) {
+      const correct = attempts.filter((a) => a.isCorrect).length;
+      const total = attempts.length;
+      const percentage = total > 0 ? Math.round((correct / total) * 100) : 0;
+
+      // Save result to localStorage
+      saveResult(item.id, {
+        score: correct,
+        total,
+        percentage,
+        date: new Date().toISOString(),
+      });
+
+      // Auto-complete at >= 80%
+      if (percentage >= 80 && !item.isCompleted && learningPathId) {
+        updateCompletion({
+          learningPathId,
+          itemId: item.id,
+          data: { completed: true },
+        });
+      }
+    }
+  }, [phase, attempts, item.id, item.isCompleted, learningPathId, updateCompletion]);
 
   const handleStart = useCallback(() => {
     setPhase("question");
@@ -697,19 +759,6 @@ export const QuizDetail = memo(({ item }: QuizDetailProps) => {
     setSubmittedAttempt(null);
   }, []);
 
-  const handleMarkComplete = useCallback(async () => {
-    if (!learningPathId) return;
-    try {
-      await updateCompletion({
-        learningPathId,
-        itemId: item.id,
-        data: { completed: true },
-      }).unwrap();
-    } catch {
-      // ignore
-    }
-  }, [updateCompletion, learningPathId, item.id]);
-
   if (isLoading) {
     return (
       <div className="bg-card rounded-xl shadow-sm border border-border p-8">
@@ -729,7 +778,7 @@ export const QuizDetail = memo(({ item }: QuizDetailProps) => {
               d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
             />
           </svg>
-          <span className="text-sm">Завантаження квізу...</span>
+          <span className="text-sm">Loading quiz...</span>
         </div>
       </div>
     );
@@ -739,8 +788,8 @@ export const QuizDetail = memo(({ item }: QuizDetailProps) => {
     return (
       <div className="bg-card rounded-xl shadow-sm border border-border p-8">
         <div className="text-center">
-          <p className="text-sm text-destructive mb-2">Не вдалося завантажити квіз.</p>
-          <p className="text-xs text-muted-foreground">Спробуйте оновити сторінку</p>
+          <p className="text-sm text-destructive mb-2">Failed to load quiz.</p>
+          <p className="text-xs text-muted-foreground">Try refreshing the page</p>
         </div>
       </div>
     );
@@ -755,6 +804,8 @@ export const QuizDetail = memo(({ item }: QuizDetailProps) => {
       <IntroView
         title={quiz.title}
         questionsCount={sortedQuestions.length}
+        previousResult={previousResult}
+        isCompleted={item.isCompleted}
         onStart={handleStart}
       />
     );
@@ -792,8 +843,6 @@ export const QuizDetail = memo(({ item }: QuizDetailProps) => {
         questionText: q.questionText,
       }))}
       isCompleted={item.isCompleted}
-      isMarkingComplete={isMarkingComplete}
-      onMarkComplete={handleMarkComplete}
       onRetry={handleRetry}
     />
   );

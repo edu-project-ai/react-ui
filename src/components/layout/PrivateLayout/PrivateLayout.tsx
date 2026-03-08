@@ -1,21 +1,31 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/shared/ThemeToggle/ThemeToggle";
 import { Sidebar } from "../Sidebar/Sidebar";
-import { Outlet } from "react-router-dom";
+import { Outlet, Link } from "react-router-dom";
 export interface PrivateLayoutProps {
   children?: React.ReactNode;
   className?: string;
 }
 import { RoadmapNotificationListener } from "@/features/learning-paths/components/RoadmapNotificationListener";
 import { NotificationsMenu } from "@/features/notifications/components/NotificationsMenu";
+import { useGetUserProfileQuery, setCurrentUser } from "@/features/authorization";
+import { useAppDispatch } from "@/hooks/useReduxHooks";
 
 export const PrivateLayout: React.FC<PrivateLayoutProps> = ({
   className,
 }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const dispatch = useAppDispatch();
+  const { data: userProfile } = useGetUserProfileQuery();
+
+  useEffect(() => {
+    if (userProfile) {
+      dispatch(setCurrentUser(userProfile));
+    }
+  }, [userProfile, dispatch]);
 
   return (
     <div className="min-h-screen bg-background text-foreground flex">
@@ -93,23 +103,25 @@ export const PrivateLayout: React.FC<PrivateLayoutProps> = ({
               <ThemeToggle className="hidden sm:inline-flex" />
 
               {/* Quick Actions */}
-              <Button size="sm">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="16"
-                  height="16"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  className="mr-2"
-                >
-                  <path d="M12 5v14M5 12h14"></path>
-                </svg>
-                Новий роутмап
-              </Button>
+              <Link to="/create-roadmap">
+                <Button size="sm">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className="mr-2"
+                  >
+                    <path d="M12 5v14M5 12h14"></path>
+                  </svg>
+                  New Roadmap
+                </Button>
+              </Link>
             </div>
           </div>
         </header>

@@ -328,7 +328,7 @@ export default function RegisterForm() {
 
         <Button
           type="submit"
-          variant="primary"
+          variant="default"
           disabled={isLoading}
           className="w-full"
         >

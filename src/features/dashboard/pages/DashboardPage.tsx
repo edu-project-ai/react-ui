@@ -45,11 +45,13 @@ export const DashboardPage: React.FC = () => {
     );
   }
 
-  const sortedPaths = [...(paths || [])].sort((a, b) => {
-    const dateA = new Date(a.updatedAt || 0).getTime();
-    const dateB = new Date(b.updatedAt || 0).getTime();
-    return dateB - dateA;
-  });
+  const sortedPaths = [...(paths || [])]
+    .filter((p) => p.isActive !== false)
+    .sort((a, b) => {
+      const dateA = new Date(a.updatedAt || 0).getTime();
+      const dateB = new Date(b.updatedAt || 0).getTime();
+      return dateB - dateA;
+    });
 
   const activePath = sortedPaths[0];
   const otherPaths = sortedPaths.slice(1);

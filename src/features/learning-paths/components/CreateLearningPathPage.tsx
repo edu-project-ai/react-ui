@@ -7,20 +7,13 @@ import { Spinner } from "@/components/ui/spinner";
 import { Form } from "@/components/ui/form";
 import {
   TECHNOLOGY_LABELS,
-  TECHNOLOGY_TO_BACKEND_MAP,
+  BACKEND_TO_TECHNOLOGY_MAP,
+  type Technology,
 } from "@/features/onboarding";
 import type { CreateLearningPathRequest } from "../services/type";
 import { Step1Goal } from "./steps/Step1Goal";
 import { Step2Background } from "./steps/Step2Background";
 import { Step3Customize } from "./steps/Step3Customize";
-
-// Reverse map: backend slug → display name (e.g. "csharp" → "C#")
-const SLUG_TO_DISPLAY: Record<string, string> = Object.fromEntries(
-  Object.entries(TECHNOLOGY_TO_BACKEND_MAP).map(([key, slug]) => [
-    slug,
-    TECHNOLOGY_LABELS[key as keyof typeof TECHNOLOGY_LABELS] || key,
-  ])
-);
 
 // ============================================================================
 // Step Progress Bar
@@ -30,10 +23,11 @@ interface StepProgressProps {
   currentStep: number;
   stepLabels: string[];
   stepDescriptions: string[];
+  onStepClick?: (step: number) => void;
 }
 
 const StepProgress = memo(
-  ({ currentStep, stepLabels, stepDescriptions }: StepProgressProps) => {
+  ({ currentStep, stepLabels, stepDescriptions, onStepClick }: StepProgressProps) => {
     const total = stepLabels.length;
     return (
       <div className="mb-8">
@@ -43,20 +37,24 @@ const StepProgress = memo(
             const stepNum = idx + 1;
             const isDone = stepNum < currentStep;
             const isActive = stepNum === currentStep;
+            const isClickable = isDone || isActive;
             return (
               <div key={idx} className="flex items-start flex-1 last:flex-none">
                 <div className="flex flex-col items-center min-w-0">
-                  <div
+                  <button
+                    type="button"
+                    disabled={!isClickable}
+                    onClick={() => isClickable && onStepClick?.(stepNum)}
                     className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-semibold shrink-0 transition-all duration-300 ${
                       isDone
-                        ? "bg-primary text-primary-foreground"
+                        ? "bg-primary text-primary-foreground cursor-pointer hover:ring-4 hover:ring-primary/20"
                         : isActive
-                        ? "bg-primary text-primary-foreground ring-4 ring-primary/20 scale-110"
-                        : "bg-muted text-muted-foreground"
+                        ? "bg-primary text-primary-foreground ring-4 ring-primary/20 scale-110 cursor-default"
+                        : "bg-muted text-muted-foreground cursor-not-allowed"
                     }`}
                   >
                     {isDone ? "✓" : stepNum}
-                  </div>
+                  </button>
                   <span
                     className={`text-xs font-medium mt-1.5 text-center hidden sm:block max-w-[80px] leading-tight ${
                       isActive ? "text-foreground" : "text-muted-foreground"
@@ -117,16 +115,18 @@ export const CreateLearningPathPage = () => {
     currentUser?.programmingLevel ||
     "beginner";
 
-  // Derive known technologies: onboarding state has priority, fallback to profile slugs
-  const derivedTechnologies =
+  // Derive known technologies as Technology keys; onboarding state has priority
+  const derivedTechnologies: Technology[] =
     technologies.length > 0
-      ? technologies.map((t) => TECHNOLOGY_LABELS[t] || t)
-      : (currentUser?.programmingTechnologies ?? []).map(
-          (slug) => SLUG_TO_DISPLAY[slug] || slug
-        );
+      ? [...technologies]
+      : (currentUser?.programmingTechnologies ?? [])
+          .map((slug) => BACKEND_TO_TECHNOLOGY_MAP[slug])
+          .filter((t): t is Technology => t !== undefined);
 
   const derivedExperience = currentUser
-    ? `I am a ${currentUser.programmingLevel} developer with experience in ${derivedTechnologies.join(", ")}.`
+    ? `I am a ${currentUser.programmingLevel} developer with experience in ${
+        derivedTechnologies.map((t) => TECHNOLOGY_LABELS[t] || t).join(", ")
+      }.`
     : "";
 
   const methods = useForm<CreateLearningPathRequest>({
@@ -159,6 +159,11 @@ export const CreateLearningPathPage = () => {
 
   const { handleSubmit, control, trigger, setValue, watch } = methods;
 
+  const handleStepClick = useCallback(async (targetStep: number) => {
+    if (targetStep >= step) return; // Only allow going back
+    setStep(targetStep);
+  }, [step]);
+
   const handleCancel = useCallback(() => navigate("/learning-paths"), [navigate]);
 
   const handleNext = async () => {
@@ -175,7 +180,6 @@ export const CreateLearningPathPage = () => {
     // Prevents browser Enter-key behaviour from firing the request mid-wizard.
     if (step !== 3) return;
     setError(null);
-    console.log('Step 3 called here')
     const result = await createLearningPath(data);
     if (result.success) {
       navigate("/learning-paths");
@@ -198,6 +202,7 @@ export const CreateLearningPathPage = () => {
         currentStep={step}
         stepLabels={STEP_LABELS}
         stepDescriptions={STEP_DESCRIPTIONS}
+        onStepClick={handleStepClick}
       />
 
       {error && (

@@ -65,13 +65,6 @@ const CalendarIcon = memo(() => (
 CalendarIcon.displayName = "CalendarIcon";
 
 export const OverallStats = memo(({ statistics }: OverallStatsProps) => {
-  const formatTime = (minutes: number): string => {
-    if (minutes < 60) return `${minutes}m`;
-    const hours = Math.floor(minutes / 60);
-    const mins = minutes % 60;
-    return mins > 0 ? `${hours}h ${mins}m` : `${hours}h`;
-  };
-
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
       <StatCard
@@ -82,8 +75,8 @@ export const OverallStats = memo(({ statistics }: OverallStatsProps) => {
       />
       <StatCard
         icon={<ClockIcon />}
-        label="Total Time"
-        value={formatTime(statistics.totalTimeMinutes)}
+        label="Avg. Items/Day"
+        value={statistics.averageItemsPerDay.toFixed(1)}
         color="bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400"
       />
       <StatCard

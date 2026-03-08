@@ -103,12 +103,13 @@ export const LearningPathsPage = () => {
   }
 
   const hasLearningPaths = learningPaths && learningPaths.length > 0;
+  const activePaths = learningPaths?.filter((p) => p.isActive !== false) ?? [];
 
   return (
     <div className="container mx-auto px-4 py-8">
       <HeroSection />
       {hasLearningPaths ? (
-        <LearningPathsGrid paths={learningPaths} />
+        <LearningPathsGrid paths={activePaths} />
       ) : (
         <EmptyState />
       )}

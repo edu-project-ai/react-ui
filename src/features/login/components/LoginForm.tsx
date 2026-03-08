@@ -127,7 +127,7 @@ export default function LoginForm() {
 
         <Button
           type="submit"
-          variant="primary"
+          variant="default"
           disabled={isLoading}
           className="w-full"
         >

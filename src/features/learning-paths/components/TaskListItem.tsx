@@ -164,7 +164,7 @@ export const TaskListItem = memo(
             >
               {task.title}
             </h3>
-            <TaskMetadata estimatedTime={task.estimatedTime} type={task.type} />
+            <TaskMetadata type={task.type} />
           </div>
 
           <div className="ml-4 flex-shrink-0">

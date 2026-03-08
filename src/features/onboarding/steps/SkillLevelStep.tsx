@@ -120,7 +120,7 @@ export const SkillLevelStep = ({
           Skip
         </Button>
         <Button
-          variant="primary"
+          variant="default"
           onClick={handleNext}
           disabled={!state.skillLevel}
           className="flex-1"

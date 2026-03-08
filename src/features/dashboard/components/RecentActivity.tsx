@@ -6,12 +6,6 @@ interface RecentActivityProps {
   paths: LearningPath[];
 }
 
-const getPlanStatus = (planJson?: Record<string, unknown> | null): string | null => {
-  if (!planJson) return null;
-  const status = planJson.Status ?? planJson.status;
-  return typeof status === "string" ? status : null;
-};
-
 const formatRelativeTime = (dateString?: string) => {
   if (!dateString) return "";
   const date = new Date(dateString);
@@ -41,7 +35,9 @@ export const RecentActivity: React.FC<RecentActivityProps> = ({ paths }) => {
       ) : (
         <div className="divide-y divide-border">
           {recent.map((path) => {
-            const isGenerating = getPlanStatus(path.planJson) === "generating";
+            const isGenerating =
+              path.generationStatus === "generating" ||
+              path.generationStatus === "pending";
             const progress = path.progress?.percentage || 0;
             return (
               <button

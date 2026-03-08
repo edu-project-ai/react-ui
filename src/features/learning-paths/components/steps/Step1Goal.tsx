@@ -41,7 +41,10 @@ export const Step1Goal = ({ control, setValue, watch }: Step1GoalProps) => {
         name="targetRole"
         label="Target Role *"
         control={control}
-        rules={{ required: "Target role is required" }}
+        rules={{
+          required: "Target role is required",
+          validate: (v: unknown) => String(v).trim().length > 0 || "Target role cannot be empty",
+        }}
         placeholder="e.g. Junior DevOps Engineer, Frontend Developer"
       />
 
@@ -49,7 +52,10 @@ export const Step1Goal = ({ control, setValue, watch }: Step1GoalProps) => {
         name="specificFocus"
         label="Specific Focus Areas *"
         control={control}
-        rules={{ required: "Specific focus is required" }}
+        rules={{
+          required: "Specific focus is required",
+          validate: (v: unknown) => String(v).trim().length > 0 || "Specific focus cannot be empty",
+        }}
         placeholder="e.g. Linux Administration, AWS, Docker, Kubernetes"
         rows={3}
       />
