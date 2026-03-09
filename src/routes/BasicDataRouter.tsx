@@ -25,7 +25,9 @@ import {
   LearningPathDetailPage,
   CheckpointPage,
   TaskDetailPage,
+  ResourceDetailPage,
   ProgressPage,
+  ResourcesPage,
   IdePage,
 } from "@/features";
 
@@ -63,6 +65,9 @@ const BasicDataRouter = () => {
           <Route path="/learning-paths/:id/checkpoints/:checkpointId" Component={CheckpointPage} />
           <Route path="/learning-paths/:id/checkpoints/:checkpointId/tasks/:taskId" Component={TaskDetailPage} />
           <Route path="/learning-paths/:id/tasks/:taskId" Component={TaskDetailPage} />
+          <Route path="/learning-paths/:id/resources/:resourceId" Component={ResourceDetailPage} />
+          <Route path="/resources/:resourceId" Component={ResourceDetailPage} />
+          <Route path="/resources" Component={ResourcesPage} />
         </Route>
     
         <Route path="*" Component={NotFound} />

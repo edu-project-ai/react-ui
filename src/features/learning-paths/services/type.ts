@@ -281,3 +281,19 @@ export interface QuizSubmitResult {
   explanation: string | null;
 }
 
+/**
+ * Resource linked to a theory learning item
+ */
+export interface ResourceItem {
+  id: string;
+  title: string;
+  type: string;
+  url: string | null;
+  content: string | null;
+  language: string | null;
+  difficultyLevel: string | null;
+  tags: string[];
+  estimatedReadTime: number | null;
+  createdAt: string;
+  updatedAt: string;
+}

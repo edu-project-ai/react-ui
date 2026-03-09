@@ -10,6 +10,7 @@ import type {
   QuizDetail,
   QuizSubmitRequest,
   QuizSubmitResult,
+  ResourceItem,
 } from "../services/type";
 
 /**
@@ -154,6 +155,25 @@ export const learningPathsApi = apiSlice.injectEndpoints({
       ],
     }),
 
+    // Get resources for a theory learning item
+    getItemResources: builder.query<
+      ResourceItem[],
+      { learningPathId: string; itemId: string }
+    >({
+      query: ({ learningPathId, itemId }) =>
+        `/api/learning-paths/${learningPathId}/items/${itemId}/resources`,
+    }),
+
+    // Get a single resource by ID
+    getResourceById: builder.query<ResourceItem, string>({
+      query: (id) => `/api/resources/${id}`,
+    }),
+
+    // Get all resources in the system
+    getAllResources: builder.query<ResourceItem[], void>({
+      query: () => `/api/resources`,
+    }),
+
   }),
 });
 
@@ -169,4 +189,7 @@ export const {
   useGetQuizQuery,
   useSubmitQuizAnswerMutation,
   useUpdateLearningPathStatusMutation,
+  useGetItemResourcesQuery,
+  useGetResourceByIdQuery,
+  useGetAllResourcesQuery,
 } = learningPathsApi;

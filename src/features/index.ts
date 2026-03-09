@@ -29,6 +29,8 @@ export {
   LearningPathDetailPage,
   CheckpointPage,
   TaskDetailPage,
+  ResourceDetailPage,
+  ResourcesPage,
 } from "./learning-paths";
 export { ProgressPage } from "./progress";
 export { IdePage } from "./ide";
