@@ -1,9 +1,10 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/shared/ThemeToggle/ThemeToggle";
 import { Sidebar } from "../Sidebar/Sidebar";
 import { Outlet, Link } from "react-router-dom";
+import { GlobalSearchPalette } from "@/features/search";
 export interface PrivateLayoutProps {
   children?: React.ReactNode;
   className?: string;
@@ -18,8 +19,22 @@ export const PrivateLayout: React.FC<PrivateLayoutProps> = ({
 }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
   const dispatch = useAppDispatch();
   const { data: userProfile } = useGetUserProfileQuery();
+
+  // Global Ctrl+K / Cmd+K hotkey
+  const handleSearchHotkey = useCallback((e: KeyboardEvent) => {
+    if ((e.ctrlKey || e.metaKey) && e.key === "k") {
+      e.preventDefault();
+      setIsSearchOpen((prev) => !prev);
+    }
+  }, []);
+
+  useEffect(() => {
+    document.addEventListener("keydown", handleSearchHotkey);
+    return () => document.removeEventListener("keydown", handleSearchHotkey);
+  }, [handleSearchHotkey]);
 
   useEffect(() => {
     if (userProfile) {
@@ -70,8 +85,11 @@ export const PrivateLayout: React.FC<PrivateLayoutProps> = ({
                 </svg>
               </button>
 
-              {/* Search */}
-              <div className="relative max-w-md">
+              {/* Search trigger — opens Command Palette */}
+              <button
+                onClick={() => setIsSearchOpen(true)}
+                className="flex items-center gap-2 pl-3 pr-2 py-2 w-full sm:w-80 rounded-md border border-input bg-background text-sm text-muted-foreground hover:border-ring hover:bg-accent/5 transition-colors cursor-pointer"
+              >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   width="18"
@@ -82,17 +100,16 @@ export const PrivateLayout: React.FC<PrivateLayoutProps> = ({
                   strokeWidth="2"
                   strokeLinecap="round"
                   strokeLinejoin="round"
-                  className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground"
+                  className="shrink-0"
                 >
-                  <circle cx="11" cy="11" r="8"></circle>
-                  <path d="m21 21-4.35-4.35"></path>
+                  <circle cx="11" cy="11" r="8" />
+                  <path d="m21 21-4.35-4.35" />
                 </svg>
-                <input
-                  type="text"
-                  placeholder="Пошук завдань, ресурсів..."
-                  className="pl-10 pr-4 py-2 w-full sm:w-80 rounded-md border border-input bg-background text-sm focus:outline-none focus:ring-1 focus:ring-ring"
-                />
-              </div>
+                <span className="flex-1 text-left">Пошук завдань, ресурсів...</span>
+                <kbd className="hidden sm:inline-flex items-center gap-0.5 px-1.5 py-0.5 text-[10px] font-mono text-muted-foreground bg-muted rounded border border-border">
+                  Ctrl+K
+                </kbd>
+              </button>
             </div>
 
             <div className="flex items-center gap-3">
@@ -139,6 +156,12 @@ export const PrivateLayout: React.FC<PrivateLayoutProps> = ({
           onClick={() => setSidebarOpen(false)}
         />
       )}
+
+      {/* Global Search Command Palette */}
+      <GlobalSearchPalette
+        isOpen={isSearchOpen}
+        onClose={() => setIsSearchOpen(false)}
+      />
     </div>
   );
 };
