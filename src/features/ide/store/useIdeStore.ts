@@ -3,13 +3,16 @@ import type { Tab } from '../types';
 
 interface IdeState {
   containerId: string | null;
+  mappedPorts?: Record<string, number>;
   tabs: Tab[];
   activeFilePath: string | null;
   sidebarVisible: boolean;
   activeSidebarPanel: 'explorer' | 'search';
+  browserVisible: boolean;
   savedFileContents: Record<string, string>;
 
   setContainerId: (id: string | null) => void;
+  setSessionInfo: (id: string | null, ports?: Record<string, number>) => void;
   openFile: (path: string) => void;
   closeTab: (path: string) => void;
   setActiveFile: (path: string) => void;
@@ -19,15 +22,18 @@ interface IdeState {
   checkDirtyState: (path: string, currentContent: string) => void;
   toggleSidebar: () => void;
   setActiveSidebarPanel: (panel: 'explorer' | 'search') => void;
+  toggleBrowser: () => void;
   reset: () => void;
 }
 
 const initialState = {
   containerId: null,
+  mappedPorts: undefined,
   tabs: [] as Tab[],
   activeFilePath: null as string | null,
   sidebarVisible: true,
   activeSidebarPanel: 'explorer' as const,
+  browserVisible: false,
   savedFileContents: {} as Record<string, string>,
 };
 
@@ -35,6 +41,7 @@ export const useIdeStore = create<IdeState>((set, get) => ({
   ...initialState,
 
   setContainerId: (id) => set({ containerId: id }),
+  setSessionInfo: (id, ports) => set({ containerId: id, mappedPorts: ports }),
 
   openFile: (path) => {
     const { tabs } = get();
@@ -106,6 +113,9 @@ export const useIdeStore = create<IdeState>((set, get) => ({
     set((state) => ({ sidebarVisible: !state.sidebarVisible })),
 
   setActiveSidebarPanel: (panel) => set({ activeSidebarPanel: panel }),
+
+  toggleBrowser: () =>
+    set((state) => ({ browserVisible: !state.browserVisible })),
 
   reset: () => set(initialState),
 }));

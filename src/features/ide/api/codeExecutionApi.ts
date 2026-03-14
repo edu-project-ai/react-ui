@@ -6,6 +6,7 @@ import { apiSlice } from '@/store/api/apiSlice';
 export interface StartSessionResponse {
   sessionId: string;
   status: string;
+  mappedPorts?: Record<string, number>;
 }
 
 /**
@@ -56,13 +57,16 @@ export const codeExecutionApi = apiSlice.injectEndpoints({
         };
       },
       transformResponse: (response: {
-        containerId: { containerId: string; environmentId: string };
+        containerId: string;
+        environmentId: string;
+        mappedPorts: Record<string, number>;
         userId: string;
         taskId: string;
       }) => {
         console.log('Task session created:', response);
         return {
-          sessionId: response.containerId.containerId,
+          sessionId: response.containerId,
+          mappedPorts: response.mappedPorts,
           status: 'created',
         };
       },

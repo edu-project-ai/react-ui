@@ -12,7 +12,7 @@ interface TerminalProps {
   /** Fires once the terminal is fully initialized and attached */
   onReady?: () => void;
   /** Fires once the container has been provisioned, with the containerId */
-  onSessionCreated?: (containerId: string) => void;
+  onSessionCreated?: (containerId: string, mappedPorts?: Record<string, number>) => void;
 }
 
 const BootOverlay: React.FC = () => (

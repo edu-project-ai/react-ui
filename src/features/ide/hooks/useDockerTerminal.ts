@@ -18,7 +18,7 @@ interface UseDockerTerminalOptions {
   /** Called when the terminal is fully initialized and attached */
   onReady?: () => void;
   /** Called once the container has been provisioned, with the containerId */
-  onSessionCreated?: (containerId: string) => void;
+  onSessionCreated?: (containerId: string, mappedPorts?: Record<string, number>) => void;
 }
 
 interface UseDockerTerminalReturn {
@@ -151,14 +151,14 @@ export const useDockerTerminal = ({
 
       try {
         // 1) Provision the container via the .NET REST API
-        const { sessionId: containerId } = await startTaskSession({
+        const { sessionId: containerId, mappedPorts } = await startTaskSession({
           taskId,
         }).unwrap();
 
         if (cancelled) return;
 
         // Notify parent about the provisioned container
-        onSessionCreatedRef.current?.(containerId);
+        onSessionCreatedRef.current?.(containerId, mappedPorts);
 
         // 2) Open the binary WebSocket to the Go proxy
         const wsUrl = `${WS_PROXY_BASE_URL}/attach?id=${containerId}`;

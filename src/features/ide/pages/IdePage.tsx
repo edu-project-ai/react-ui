@@ -9,6 +9,7 @@ import { ActivityBar } from '../components/ActivityBar';
 import { Sidebar } from '../components/Sidebar';
 import { EditorArea } from '../components/EditorArea';
 import { Terminal } from '../components/terminal/Terminal';
+import { BrowserPreview } from '../components/BrowserPreview';
 import '../styles/ide.css';
 
 export function IdePage() {
@@ -30,7 +31,8 @@ export function IdePage() {
 
   // ── Zustand store ──
   const sidebarVisible = useIdeStore((s) => s.sidebarVisible);
-  const setContainerId = useIdeStore((s) => s.setContainerId);
+  const browserVisible = useIdeStore((s) => s.browserVisible);
+  const setSessionInfo = useIdeStore((s) => s.setSessionInfo);
   const reset = useIdeStore((s) => s.reset);
 
   // Reset IDE state on unmount
@@ -53,10 +55,10 @@ export function IdePage() {
 
   // ── Session created callback ──
   const handleSessionCreated = useCallback(
-    (containerId: string) => {
-      setContainerId(containerId);
+    (containerId: string, mappedPorts?: Record<string, number>) => {
+      setSessionInfo(containerId, mappedPorts);
     },
-    [setContainerId],
+    [setSessionInfo],
   );
 
   // ── Back navigation ──
@@ -133,22 +135,36 @@ export function IdePage() {
               <Sidebar />
             </Allotment.Pane>
 
-            {/* Editor + Terminal (vertical split) */}
+            {/* Editor + Terminal (vertical split) & Browser Preview */}
             <Allotment.Pane>
-              <Allotment vertical>
-                {/* Editor Area */}
-                <Allotment.Pane minSize={100}>
-                  <EditorArea />
+              <Allotment>
+                {/* Editor & Terminal Column */}
+                <Allotment.Pane>
+                  <Allotment vertical>
+                    {/* Editor Area */}
+                    <Allotment.Pane minSize={100}>
+                      <EditorArea />
+                    </Allotment.Pane>
+
+                    {/* Terminal */}
+                    <Allotment.Pane minSize={80} preferredSize={200}>
+                      <div className="h-full bg-black overflow-hidden">
+                        <Terminal
+                          taskId={codingTask.id}
+                          onSessionCreated={handleSessionCreated}
+                        />
+                      </div>
+                    </Allotment.Pane>
+                  </Allotment>
                 </Allotment.Pane>
 
-                {/* Terminal */}
-                <Allotment.Pane minSize={80} preferredSize={200}>
-                  <div className="h-full bg-black overflow-hidden">
-                    <Terminal
-                      taskId={codingTask.id}
-                      onSessionCreated={handleSessionCreated}
-                    />
-                  </div>
+                {/* Browser Preview (Optional split right) */}
+                <Allotment.Pane
+                  minSize={300}
+                  preferredSize={400}
+                  visible={browserVisible}
+                >
+                  <BrowserPreview />
                 </Allotment.Pane>
               </Allotment>
             </Allotment.Pane>
