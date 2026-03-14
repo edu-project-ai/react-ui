@@ -30,10 +30,15 @@ export const ideProxyApi = createApi({
         responseHandler: "text",
       }),
     }),
-    searchFiles: builder.query<SearchResult[], { containerId: string; query: string }>({
-      query: ({ containerId, query }) => ({
+    searchFiles: builder.query<SearchResult[], { containerId: string; query: string; matchCase?: boolean; matchWord?: boolean }>({
+      query: ({ containerId, query, matchCase, matchWord }) => ({
         url: "/fs/search",
-        params: { id: containerId, q: query },
+        params: { 
+          id: containerId, 
+          q: query,
+          ...(matchCase && { matchCase: 'true' }),
+          ...(matchWord && { matchWord: 'true' })
+        },
       }),
     }),
   }),
