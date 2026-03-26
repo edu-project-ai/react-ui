@@ -1,11 +1,15 @@
 import { memo, useState, useCallback, useEffect } from "react";
 import { useParams } from "react-router-dom";
-import type { QuizItem } from "../../services/type";
+import type { QuizAttemptSummary, QuizItem } from "../../services/type";
 import {
   useGetQuizQuery,
+  useGetLatestQuizAttemptQuery,
+  useSaveQuizAttemptMutation,
   useSubmitQuizAnswerMutation,
   useUpdateTaskCompletionMutation,
+  useRequestQuizHelpMutation,
 } from "../../api/learningPathsApi";
+import { AgentHelpModal } from "../AgentHelpModal";
 
 // ============================================================================
 // Types
@@ -15,38 +19,16 @@ type QuizPhase = "intro" | "question" | "results";
 
 interface QuestionAttempt {
   questionId: string;
+  questionText: string;
+  questionType: 'single_choice' | 'multiple_choice' | 'text_input';
+  options: Record<string, string>;
   isCorrect: boolean;
   correctAnswerIndex: number;
   correctAnswerIndices: number[] | null;
   explanation: string | null;
-}
-
-interface SavedQuizResult {
-  score: number;
-  total: number;
-  percentage: number;
-  date: string;
-}
-
-// ============================================================================
-// Local Storage helpers
-// ============================================================================
-
-function getSavedResult(itemId: string): SavedQuizResult | null {
-  try {
-    const raw = localStorage.getItem(`quiz-result-${itemId}`);
-    return raw ? JSON.parse(raw) : null;
-  } catch {
-    return null;
-  }
-}
-
-function saveResult(itemId: string, result: SavedQuizResult): void {
-  try {
-    localStorage.setItem(`quiz-result-${itemId}`, JSON.stringify(result));
-  } catch {
-    // ignore storage errors
-  }
+  userAnswerIndex?: number | null;
+  userAnswerIndices?: number[] | null;
+  userTextAnswer?: string | null;
 }
 
 // ============================================================================
@@ -118,12 +100,22 @@ XCircleIcon.displayName = "XCircleIcon";
 interface IntroViewProps {
   title: string;
   questionsCount: number;
-  previousResult?: SavedQuizResult | null;
+  previousResult?: QuizAttemptSummary | null;
   isCompleted: boolean;
   onStart: () => void;
+  onRequestPreviousHelp?: () => void;
+  isHelpLoading: boolean;
 }
 
-const IntroView = memo(({ title, questionsCount, previousResult, isCompleted, onStart }: IntroViewProps) => (
+const IntroView = memo(({
+  title,
+  questionsCount,
+  previousResult,
+  isCompleted,
+  onStart,
+  onRequestPreviousHelp,
+  isHelpLoading,
+}: IntroViewProps) => (
   <div className="bg-card rounded-xl shadow-sm border border-border overflow-hidden">
     <div className="p-6 md:p-8">
       <div className="flex items-center gap-3 mb-6">
@@ -153,12 +145,12 @@ const IntroView = memo(({ title, questionsCount, previousResult, isCompleted, on
             <div>
               <p className="text-sm font-medium text-foreground">Previous Result</p>
               <p className="text-xs text-muted-foreground mt-0.5">
-                {new Date(previousResult.date).toLocaleDateString()}
+                {new Date(previousResult.createdAt).toLocaleDateString()}
               </p>
             </div>
             <div className="text-right">
               <p className={`text-lg font-bold ${getScoreColor(previousResult.percentage)}`}>
-                {previousResult.score}/{previousResult.total}
+                {previousResult.correctAnswers}/{previousResult.totalQuestions}
               </p>
               <p className="text-xs text-muted-foreground">{previousResult.percentage}%</p>
             </div>
@@ -189,13 +181,25 @@ const IntroView = memo(({ title, questionsCount, previousResult, isCompleted, on
         </ul>
       </div>
 
-      <button
-        type="button"
-        onClick={onStart}
-        className="w-full py-3 px-6 rounded-lg font-semibold bg-purple-600 hover:bg-purple-700 text-white shadow transition-colors"
-      >
-        {previousResult ? "Retry Quiz" : "Start Quiz"}
-      </button>
+      <div className="flex flex-col gap-3">
+        <button
+          type="button"
+          onClick={onStart}
+          className="w-full py-3 px-6 rounded-lg font-semibold bg-purple-600 hover:bg-purple-700 text-white shadow transition-colors"
+        >
+          {previousResult ? "Retry Quiz" : "Start Quiz"}
+        </button>
+        {previousResult && previousResult.percentage < 80 && onRequestPreviousHelp && (
+          <button
+            type="button"
+            onClick={onRequestPreviousHelp}
+            disabled={isHelpLoading}
+            className="w-full py-3 px-6 rounded-lg font-semibold bg-violet-600 hover:bg-violet-700 disabled:opacity-50 disabled:cursor-not-allowed text-white shadow transition-colors"
+          >
+            {isHelpLoading ? "Asking AI..." : "Get AI Help For Last Attempt"}
+          </button>
+        )}
+      </div>
     </div>
   </div>
 ));
@@ -508,6 +512,8 @@ interface ResultsViewProps {
   questions: Array<{ id: string; questionText: string }>;
   isCompleted: boolean;
   onRetry: () => void;
+  onRequestHelp: () => void;
+  isHelpLoading: boolean;
 }
 
 const ResultsView = memo(
@@ -517,6 +523,8 @@ const ResultsView = memo(
     questions,
     isCompleted,
     onRetry,
+    onRequestHelp,
+    isHelpLoading,
   }: ResultsViewProps) => {
     const correct = attempts.filter((a) => a.isCorrect).length;
     const total = attempts.length;
@@ -595,6 +603,26 @@ const ResultsView = memo(
             >
               Retry Quiz
             </button>
+            {percentage < 80 && (
+              <button
+                type="button"
+                onClick={onRequestHelp}
+                disabled={isHelpLoading}
+                className="flex-1 py-3 px-6 rounded-lg font-semibold bg-violet-600 hover:bg-violet-700 disabled:opacity-50 disabled:cursor-not-allowed text-white shadow transition-colors flex items-center justify-center gap-2"
+              >
+                {isHelpLoading ? (
+                  <>
+                    <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                    </svg>
+                    Asking AI...
+                  </>
+                ) : (
+                  "Get AI Help"
+                )}
+              </button>
+            )}
             {isCompleted ? (
               <div className="flex-1 py-3 px-6 rounded-lg font-semibold bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-300 flex items-center justify-center gap-2 border border-green-200 dark:border-green-800">
                 <CheckCircleIcon />
@@ -633,10 +661,15 @@ export const QuizDetail = memo(({ item }: QuizDetailProps) => {
     { learningPathId: learningPathId!, itemId: item.id },
     { skip: !learningPathId }
   );
+  const { data: previousResult } = useGetLatestQuizAttemptQuery(
+    { learningPathId: learningPathId!, itemId: item.id },
+    { skip: !learningPathId }
+  );
 
   const [submitAnswer, { isLoading: isSubmitting }] = useSubmitQuizAnswerMutation();
-  const [updateCompletion] =
-    useUpdateTaskCompletionMutation();
+  const [saveQuizAttempt] = useSaveQuizAttemptMutation();
+  const [updateCompletion] = useUpdateTaskCompletionMutation();
+  const [requestQuizHelp, { isLoading: isHelpLoading }] = useRequestQuizHelpMutation();
 
   const [phase, setPhase] = useState<QuizPhase>("intro");
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -645,7 +678,9 @@ export const QuizDetail = memo(({ item }: QuizDetailProps) => {
   const [selectedOptions, setSelectedOptions] = useState<Set<number>>(new Set());
   const [textAnswer, setTextAnswer] = useState("");
   const [submittedAttempt, setSubmittedAttempt] = useState<QuestionAttempt | null>(null);
-  const [previousResult] = useState<SavedQuizResult | null>(() => getSavedResult(item.id));
+  const [helpModalOpen, setHelpModalOpen] = useState(false);
+  const [helpOutput, setHelpOutput] = useState<string | null>(null);
+  const [helpError, setHelpError] = useState(false);
 
   // Auto-complete when phase changes to results and score >= 80%
   useEffect(() => {
@@ -653,14 +688,6 @@ export const QuizDetail = memo(({ item }: QuizDetailProps) => {
       const correct = attempts.filter((a) => a.isCorrect).length;
       const total = attempts.length;
       const percentage = total > 0 ? Math.round((correct / total) * 100) : 0;
-
-      // Save result to localStorage
-      saveResult(item.id, {
-        score: correct,
-        total,
-        percentage,
-        date: new Date().toISOString(),
-      });
 
       // Auto-complete at >= 80%
       if (percentage >= 80 && !item.isCompleted && learningPathId) {
@@ -672,6 +699,36 @@ export const QuizDetail = memo(({ item }: QuizDetailProps) => {
       }
     }
   }, [phase, attempts, item.id, item.isCompleted, learningPathId, updateCompletion]);
+
+  const persistQuizAttempt = useCallback(async (attemptList: QuestionAttempt[]) => {
+    if (!learningPathId || attemptList.length === 0) {
+      return;
+    }
+
+    try {
+      await saveQuizAttempt({
+        learningPathId,
+        itemId: item.id,
+        data: {
+          questions: attemptList.map((attempt) => ({
+            questionId: attempt.questionId,
+            questionText: attempt.questionText,
+            questionType: attempt.questionType,
+            options: attempt.options,
+            userAnswerIndex: attempt.userAnswerIndex ?? null,
+            userAnswerIndices: attempt.userAnswerIndices ?? null,
+            userTextAnswer: attempt.userTextAnswer ?? null,
+            correctAnswerIndex: attempt.correctAnswerIndex,
+            correctAnswerIndices: attempt.correctAnswerIndices,
+            explanation: attempt.explanation,
+            isCorrect: attempt.isCorrect,
+          })),
+        },
+      }).unwrap();
+    } catch {
+      // Saving attempts should not block quiz flow.
+    }
+  }, [item.id, learningPathId, saveQuizAttempt]);
 
   const handleStart = useCallback(() => {
     setPhase("question");
@@ -721,12 +778,21 @@ export const QuizDetail = memo(({ item }: QuizDetailProps) => {
         data: payload,
       }).unwrap();
 
+      const userAnswerIndex =
+        question.questionType === "single_choice" ? (selectedOption ?? -1) : -1;
+
       const attempt: QuestionAttempt = {
         questionId: question.id,
+        questionText: question.questionText,
+        questionType: question.questionType,
+        options: question.options,
         isCorrect: result.isCorrect,
         correctAnswerIndex: result.correctAnswerIndex,
         correctAnswerIndices: result.correctAnswerIndices ?? null,
         explanation: result.explanation,
+        userAnswerIndex: question.questionType === "single_choice" ? userAnswerIndex : null,
+        userAnswerIndices: question.questionType === "multiple_choice" ? [...selectedOptions] : null,
+        userTextAnswer: question.questionType === "text_input" ? textAnswer : null,
       };
       setSubmittedAttempt(attempt);
       setAttempts((prev) => [...prev, attempt]);
@@ -745,9 +811,10 @@ export const QuizDetail = memo(({ item }: QuizDetailProps) => {
       setTextAnswer("");
       setSubmittedAttempt(null);
     } else {
+      void persistQuizAttempt(attempts);
       setPhase("results");
     }
-  }, [quiz, currentIndex]);
+  }, [attempts, currentIndex, persistQuizAttempt, quiz]);
 
   const handleRetry = useCallback(() => {
     setPhase("intro");
@@ -758,6 +825,23 @@ export const QuizDetail = memo(({ item }: QuizDetailProps) => {
     setTextAnswer("");
     setSubmittedAttempt(null);
   }, []);
+
+  const handleRequestHelp = useCallback(async () => {
+    if (!learningPathId) return;
+    setHelpOutput(null);
+    setHelpError(false);
+    setHelpModalOpen(true);
+    try {
+      if (attempts.length > 0) {
+        await persistQuizAttempt(attempts);
+      }
+
+      const response = await requestQuizHelp({ learningPathId, itemId: item.id }).unwrap();
+      setHelpOutput(response.agentOutput);
+    } catch {
+      setHelpError(true);
+    }
+  }, [attempts, item.id, learningPathId, persistQuizAttempt, requestQuizHelp]);
 
   if (isLoading) {
     return (
@@ -801,13 +885,24 @@ export const QuizDetail = memo(({ item }: QuizDetailProps) => {
 
   if (phase === "intro") {
     return (
-      <IntroView
-        title={quiz.title}
-        questionsCount={sortedQuestions.length}
-        previousResult={previousResult}
-        isCompleted={item.isCompleted}
-        onStart={handleStart}
-      />
+      <>
+        <IntroView
+          title={quiz.title}
+          questionsCount={sortedQuestions.length}
+          previousResult={previousResult}
+          isCompleted={item.isCompleted}
+          onStart={handleStart}
+          onRequestPreviousHelp={handleRequestHelp}
+          isHelpLoading={isHelpLoading}
+        />
+        <AgentHelpModal
+          isOpen={helpModalOpen}
+          isLoading={isHelpLoading}
+          agentOutput={helpOutput}
+          error={helpError}
+          onClose={() => setHelpModalOpen(false)}
+        />
+      </>
     );
   }
 
@@ -835,16 +930,27 @@ export const QuizDetail = memo(({ item }: QuizDetailProps) => {
   }
 
   return (
-    <ResultsView
-      quizTitle={quiz.title}
-      attempts={attempts}
-      questions={sortedQuestions.map((q) => ({
-        id: q.id,
-        questionText: q.questionText,
-      }))}
-      isCompleted={item.isCompleted}
-      onRetry={handleRetry}
-    />
+    <>
+      <ResultsView
+        quizTitle={quiz.title}
+        attempts={attempts}
+        questions={sortedQuestions.map((q) => ({
+          id: q.id,
+          questionText: q.questionText,
+        }))}
+        isCompleted={item.isCompleted}
+        onRetry={handleRetry}
+        onRequestHelp={handleRequestHelp}
+        isHelpLoading={isHelpLoading}
+      />
+      <AgentHelpModal
+        isOpen={helpModalOpen}
+        isLoading={isHelpLoading}
+        agentOutput={helpOutput}
+        error={helpError}
+        onClose={() => setHelpModalOpen(false)}
+      />
+    </>
   );
 });
 

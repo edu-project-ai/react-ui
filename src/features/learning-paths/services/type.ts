@@ -281,6 +281,53 @@ export interface QuizSubmitResult {
   explanation: string | null;
 }
 
+export interface QuizQuestionAttempt {
+  questionId: string;
+  questionText: string;
+  questionType: 'single_choice' | 'multiple_choice' | 'text_input';
+  options: Record<string, string>;
+  userAnswerIndex?: number | null;
+  userAnswerIndices?: number[] | null;
+  userTextAnswer?: string | null;
+  correctAnswerIndex: number;
+  correctAnswerIndices: number[] | null;
+  explanation: string | null;
+  isCorrect: boolean;
+}
+
+export interface SaveQuizAttemptRequest {
+  questions: QuizQuestionAttempt[];
+}
+
+export interface QuizAttemptSummary {
+  id: string;
+  learningItemId: string;
+  score: number;
+  correctAnswers: number;
+  totalQuestions: number;
+  percentage: number;
+  createdAt: string;
+}
+
+/**
+ * Agent interaction response from the AI help endpoints
+ */
+export interface AgentInteractionResponse {
+  id: string;
+  triggerType: 'QuizHelp' | 'TheoryHelp';
+  agentOutput: string;
+  quizScore?: number | null;
+  userQuestion?: string | null;
+  createdAt: string;
+}
+
+/**
+ * Request payload for theory help
+ */
+export interface RequestTheoryHelpRequest {
+  userQuestion: string;
+}
+
 /**
  * Resource linked to a theory learning item
  */

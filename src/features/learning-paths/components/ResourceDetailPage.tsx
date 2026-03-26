@@ -12,8 +12,7 @@ const TYPE_LABELS: Record<string, string> = {
 };
 
 export const ResourceDetailPage = () => {
-  const { id: learningPathId, resourceId } = useParams<{
-    id: string;
+  const { resourceId } = useParams<{
     resourceId: string;
   }>();
   const navigate = useNavigate();

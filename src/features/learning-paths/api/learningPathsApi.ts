@@ -10,7 +10,11 @@ import type {
   QuizDetail,
   QuizSubmitRequest,
   QuizSubmitResult,
+  SaveQuizAttemptRequest,
+  QuizAttemptSummary,
   ResourceItem,
+  AgentInteractionResponse,
+  RequestTheoryHelpRequest,
 } from "../services/type";
 
 /**
@@ -139,6 +143,31 @@ export const learningPathsApi = apiSlice.injectEndpoints({
       }),
     }),
 
+    getLatestQuizAttempt: builder.query<
+      QuizAttemptSummary | null,
+      { learningPathId: string; itemId: string }
+    >({
+      query: ({ learningPathId, itemId }) =>
+        `/api/learning-paths/${learningPathId}/items/${itemId}/quiz/results/latest`,
+      providesTags: (_result, _error, { learningPathId, itemId }) => [
+        { type: "LearningPath", id: `${learningPathId}-item-${itemId}-quiz-attempt` },
+      ],
+    }),
+
+    saveQuizAttempt: builder.mutation<
+      QuizAttemptSummary,
+      { learningPathId: string; itemId: string; data: SaveQuizAttemptRequest }
+    >({
+      query: ({ learningPathId, itemId, data }) => ({
+        url: `/api/learning-paths/${learningPathId}/items/${itemId}/quiz/results`,
+        method: "POST",
+        body: data,
+      }),
+      invalidatesTags: (_result, _error, { learningPathId, itemId }) => [
+        { type: "LearningPath", id: `${learningPathId}-item-${itemId}-quiz-attempt` },
+      ],
+    }),
+
     // Update learning path active status (activate / deactivate)
     updateLearningPathStatus: builder.mutation<
       LearningPath,
@@ -174,6 +203,29 @@ export const learningPathsApi = apiSlice.injectEndpoints({
       query: () => `/api/resources`,
     }),
 
+    // Request AI quiz help (score < 80%)
+    requestQuizHelp: builder.mutation<
+      AgentInteractionResponse,
+      { learningPathId: string; itemId: string }
+    >({
+      query: ({ learningPathId, itemId }) => ({
+        url: `/api/learning-paths/${learningPathId}/items/${itemId}/agent/quiz-help`,
+        method: "POST",
+      }),
+    }),
+
+    // Request AI theory help (student clicks "I don't understand")
+    requestTheoryHelp: builder.mutation<
+      AgentInteractionResponse,
+      { learningPathId: string; itemId: string; data: RequestTheoryHelpRequest }
+    >({
+      query: ({ learningPathId, itemId, data }) => ({
+        url: `/api/learning-paths/${learningPathId}/items/${itemId}/agent/theory-help`,
+        method: "POST",
+        body: data,
+      }),
+    }),
+
   }),
 });
 
@@ -188,8 +240,12 @@ export const {
   useGetCodingTaskQuery,
   useGetQuizQuery,
   useSubmitQuizAnswerMutation,
+  useGetLatestQuizAttemptQuery,
+  useSaveQuizAttemptMutation,
   useUpdateLearningPathStatusMutation,
   useGetItemResourcesQuery,
   useGetResourceByIdQuery,
   useGetAllResourcesQuery,
+  useRequestQuizHelpMutation,
+  useRequestTheoryHelpMutation,
 } = learningPathsApi;
