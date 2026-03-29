@@ -1,5 +1,5 @@
 import { apiSlice } from "@/store/api/apiSlice";
-import type { Checkpoint, CheckpointDetail, LearningPath } from "@/features/learning-paths/services/type";
+import type { Checkpoint, LearningPath } from "@/features/learning-paths";
 
 export const learningPathApi = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
@@ -17,13 +17,10 @@ export const learningPathApi = apiSlice.injectEndpoints({
     >({
       query: ({ learningPathId, checkpointId }) =>
         `api/learning-paths/${learningPathId}/checkpoints/${checkpointId}`,
-    }),
-    getCheckpointByIndex: builder.query<
-      CheckpointDetail,
-      { learningPathId: string; checkpointIndex: number }
-    >({
-      query: ({ learningPathId, checkpointIndex }) =>
-        `api/learning-paths/${learningPathId}/checkpoints/${checkpointIndex}`,
+      providesTags: (_result, _error, { learningPathId, checkpointId }) => [
+        { type: "LearningPath", id: learningPathId },
+        { type: "LearningPath", id: `${learningPathId}-${checkpointId}` },
+      ],
     }),
   }),
 });
@@ -32,5 +29,4 @@ export const {
   useGetLearningPathsQuery,
   useGetLearningPathQuery,
   useGetCheckpointQuery,
-  useGetCheckpointByIndexQuery,
 } = learningPathApi;

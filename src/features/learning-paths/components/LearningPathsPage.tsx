@@ -31,7 +31,7 @@ const HeroSection = memo(() => (
       Master new skills with structured roadmaps tailored to your goals.
     </p>
     <Link
-      to="/learning-paths/create"
+      to="/create-roadmap"
       className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-primary-foreground bg-primary hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary transition-colors"
     >
       <PlusIcon />
@@ -103,12 +103,13 @@ export const LearningPathsPage = () => {
   }
 
   const hasLearningPaths = learningPaths && learningPaths.length > 0;
+  const activePaths = learningPaths?.filter((p) => p.isActive !== false) ?? [];
 
   return (
     <div className="container mx-auto px-4 py-8">
       <HeroSection />
       {hasLearningPaths ? (
-        <LearningPathsGrid paths={learningPaths} />
+        <LearningPathsGrid paths={activePaths} />
       ) : (
         <EmptyState />
       )}

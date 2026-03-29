@@ -2,10 +2,19 @@ import { apiSlice } from "@/store/api/apiSlice";
 import type {
   LearningPath,
   CheckpointDetail,
-  TaskCompletionRequest,
   TaskCompletionResponse,
   CreateLearningPathRequest,
   CreateLearningPathResponse,
+  TheoryResourceDetail,
+  CodingTaskDetail,
+  QuizDetail,
+  QuizSubmitRequest,
+  QuizSubmitResult,
+  SaveQuizAttemptRequest,
+  QuizAttemptSummary,
+  ResourceItem,
+  AgentInteractionResponse,
+  RequestTheoryHelpRequest,
 } from "../services/type";
 
 /**
@@ -62,53 +71,162 @@ export const learningPathsApi = apiSlice.injectEndpoints({
     updateTaskCompletion: builder.mutation<
       TaskCompletionResponse,
       { 
-        learningPathId: string; 
-        data: TaskCompletionRequest;
-        // Optional: ID used in the cache key if different from data.checkpointId (e.g. 'cp-1' vs UUID)
-        cacheCheckpointId?: string; 
+        learningPathId: string;
+        itemId: string;
+        data: { completed: boolean };
       }
     >({
-      query: ({ learningPathId, data }) => ({
-        url: `/api/learning-paths/${learningPathId}/tasks/completion`,
+      query: ({ learningPathId, itemId, data }) => ({
+        url: `/api/learning-paths/${learningPathId}/items/${itemId}/completion`,
         method: "PUT",
         body: data,
       }),
-      async onQueryStarted({ learningPathId, data, cacheCheckpointId }, { dispatch, queryFulfilled }) {
-        // Optimistic update for getCheckpoint
-        // We try to update both the data.checkpointId (UUID) and cacheCheckpointId (e.g. cp-1) if provided
-        const checkpointIdsToUpdate = [data.checkpointId];
-        if (cacheCheckpointId && cacheCheckpointId !== data.checkpointId) {
-          checkpointIdsToUpdate.push(cacheCheckpointId);
-        }
-
-        const patchResults = checkpointIdsToUpdate.map(checkpointId => 
-          dispatch(
-            learningPathsApi.util.updateQueryData(
-              "getCheckpoint",
-              { learningPathId, checkpointId },
-              (draft) => {
-                const task = draft.tasks.find((t) => t.id === data.taskId);
-                if (task) {
-                  task.completed = data.completed;
-                }
-              }
-            )
-          )
-        );
-
+      async onQueryStarted(_arg, { queryFulfilled }) {
         try {
           await queryFulfilled;
         } catch {
-          patchResults.forEach(patch => patch.undo());
+          // Handle error
         }
       },
       // Invalidate all related caches after task completion
-      invalidatesTags: (_result, _error, { learningPathId, data }) => [
+      invalidatesTags: (_result, _error, { learningPathId }) => [
         { type: "LearningPath", id: learningPathId },
-        { type: "LearningPath", id: `${learningPathId}-${data.checkpointId}` },
+        { type: "LearningPath", id: "LIST" },
+        "Statistics",
+      ],
+    }),
+
+    // Get theory resource details (lazy loaded)
+    getTheoryResource: builder.query<
+      TheoryResourceDetail,
+      { learningPathId: string; itemId: string }
+    >({
+      query: ({ learningPathId, itemId }) =>
+        `/api/learning-paths/${learningPathId}/items/${itemId}/theory-resource`,
+      providesTags: (_result, _error, { learningPathId, itemId }) => [
+        { type: "LearningPath", id: `${learningPathId}-item-${itemId}` },
+      ],
+    }),
+
+    // Get coding task details (lazy loaded)
+    getCodingTask: builder.query<
+      CodingTaskDetail,
+      { learningPathId: string; itemId: string }
+    >({
+      query: ({ learningPathId, itemId }) =>
+        `/api/learning-paths/${learningPathId}/items/${itemId}/coding-task`,
+      providesTags: (_result, _error, { learningPathId, itemId }) => [
+        { type: "LearningPath", id: `${learningPathId}-item-${itemId}` },
+      ],
+    }),
+
+    // Get quiz details (lazy loaded)
+    getQuiz: builder.query<
+      QuizDetail,
+      { learningPathId: string; itemId: string }
+    >({
+      query: ({ learningPathId, itemId }) =>
+        `/api/learning-paths/${learningPathId}/items/${itemId}/quiz`,
+      providesTags: (_result, _error, { learningPathId, itemId }) => [
+        { type: "LearningPath", id: `${learningPathId}-item-${itemId}` },
+      ],
+    }),
+
+    // Submit a quiz answer for a single question
+    submitQuizAnswer: builder.mutation<
+      QuizSubmitResult,
+      { learningPathId: string; itemId: string; data: QuizSubmitRequest }
+    >({
+      query: ({ learningPathId, itemId, data }) => ({
+        url: `/api/learning-paths/${learningPathId}/items/${itemId}/quiz/submit`,
+        method: "POST",
+        body: data,
+      }),
+    }),
+
+    getLatestQuizAttempt: builder.query<
+      QuizAttemptSummary | null,
+      { learningPathId: string; itemId: string }
+    >({
+      query: ({ learningPathId, itemId }) =>
+        `/api/learning-paths/${learningPathId}/items/${itemId}/quiz/results/latest`,
+      providesTags: (_result, _error, { learningPathId, itemId }) => [
+        { type: "LearningPath", id: `${learningPathId}-item-${itemId}-quiz-attempt` },
+      ],
+    }),
+
+    saveQuizAttempt: builder.mutation<
+      QuizAttemptSummary,
+      { learningPathId: string; itemId: string; data: SaveQuizAttemptRequest }
+    >({
+      query: ({ learningPathId, itemId, data }) => ({
+        url: `/api/learning-paths/${learningPathId}/items/${itemId}/quiz/results`,
+        method: "POST",
+        body: data,
+      }),
+      invalidatesTags: (_result, _error, { learningPathId, itemId }) => [
+        { type: "LearningPath", id: `${learningPathId}-item-${itemId}-quiz-attempt` },
+      ],
+    }),
+
+    // Update learning path active status (activate / deactivate)
+    updateLearningPathStatus: builder.mutation<
+      LearningPath,
+      { id: string; isActive: boolean }
+    >({
+      query: ({ id, isActive }) => ({
+        url: `/api/learning-paths/${id}/status`,
+        method: "PATCH",
+        body: { isActive },
+      }),
+      invalidatesTags: (_result, _error, { id }) => [
+        { type: "LearningPath", id },
         { type: "LearningPath", id: "LIST" },
       ],
     }),
+
+    // Get resources for a theory learning item
+    getItemResources: builder.query<
+      ResourceItem[],
+      { learningPathId: string; itemId: string }
+    >({
+      query: ({ learningPathId, itemId }) =>
+        `/api/learning-paths/${learningPathId}/items/${itemId}/resources`,
+    }),
+
+    // Get a single resource by ID
+    getResourceById: builder.query<ResourceItem, string>({
+      query: (id) => `/api/resources/${id}`,
+    }),
+
+    // Get all resources in the system
+    getAllResources: builder.query<ResourceItem[], void>({
+      query: () => `/api/resources`,
+    }),
+
+    // Request AI quiz help (score < 80%)
+    requestQuizHelp: builder.mutation<
+      AgentInteractionResponse,
+      { learningPathId: string; itemId: string }
+    >({
+      query: ({ learningPathId, itemId }) => ({
+        url: `/api/learning-paths/${learningPathId}/items/${itemId}/agent/quiz-help`,
+        method: "POST",
+      }),
+    }),
+
+    // Request AI theory help (student clicks "I don't understand")
+    requestTheoryHelp: builder.mutation<
+      AgentInteractionResponse,
+      { learningPathId: string; itemId: string; data: RequestTheoryHelpRequest }
+    >({
+      query: ({ learningPathId, itemId, data }) => ({
+        url: `/api/learning-paths/${learningPathId}/items/${itemId}/agent/theory-help`,
+        method: "POST",
+        body: data,
+      }),
+    }),
+
   }),
 });
 
@@ -119,4 +237,16 @@ export const {
   useGetCheckpointQuery,
   useUpdateTaskCompletionMutation,
   useCreateLearningPathMutation,
+  useGetTheoryResourceQuery,
+  useGetCodingTaskQuery,
+  useGetQuizQuery,
+  useSubmitQuizAnswerMutation,
+  useGetLatestQuizAttemptQuery,
+  useSaveQuizAttemptMutation,
+  useUpdateLearningPathStatusMutation,
+  useGetItemResourcesQuery,
+  useGetResourceByIdQuery,
+  useGetAllResourcesQuery,
+  useRequestQuizHelpMutation,
+  useRequestTheoryHelpMutation,
 } = learningPathsApi;

@@ -1,112 +1,69 @@
 import React from "react";
-import type { LearningPath } from "@/features/learning-paths/services/type";
+import type { LearningPath } from "@/features/learning-paths";
 import { useNavigate } from "react-router-dom";
 
 interface RecentActivityProps {
   paths: LearningPath[];
 }
 
-/**
- * Helper to extract status from planJson
- */
-const getPlanStatus = (planJson?: Record<string, unknown> | null): string | null => {
-  if (!planJson) return null;
-  const status = planJson.Status ?? planJson.status;
-  return typeof status === "string" ? status : null;
+const formatRelativeTime = (dateString?: string) => {
+  if (!dateString) return "";
+  const date = new Date(dateString);
+  const diffMs = Date.now() - date.getTime();
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMs / 3600000);
+  const diffDays = Math.floor(diffMs / 86400000);
+  if (diffMins < 1) return "Just now";
+  if (diffMins < 60) return `${diffMins}m ago`;
+  if (diffHours < 24) return `${diffHours}h ago`;
+  if (diffDays < 7) return `${diffDays}d ago`;
+  return date.toLocaleDateString("en-US", { day: "numeric", month: "short" });
 };
 
 export const RecentActivity: React.FC<RecentActivityProps> = ({ paths }) => {
   const navigate = useNavigate();
 
-  // Get recent paths sorted by updatedAt
-  const recentPaths = [...paths]
-    .sort((a, b) => {
-      const dateA = new Date(a.updatedAt || 0).getTime();
-      const dateB = new Date(b.updatedAt || 0).getTime();
-      return dateB - dateA;
-    })
-    .slice(0, 5);
-
-  const formatRelativeTime = (dateString?: string) => {
-    if (!dateString) return "Unknown";
-    const date = new Date(dateString);
-    const now = new Date();
-    const diffMs = now.getTime() - date.getTime();
-    const diffMins = Math.floor(diffMs / 60000);
-    const diffHours = Math.floor(diffMs / 3600000);
-    const diffDays = Math.floor(diffMs / 86400000);
-
-    if (diffMins < 1) return "Just now";
-    if (diffMins < 60) return `${diffMins} min ago`;
-    if (diffHours < 24) return `${diffHours} h ago`;
-    if (diffDays < 7) return `${diffDays} d ago`;
-    return date.toLocaleDateString("en-US", { day: "numeric", month: "short" });
-  };
-
-  if (recentPaths.length === 0) {
-    return (
-      <div className="bg-card border border-border rounded-xl p-6">
-        <h3 className="font-semibold mb-4">Recent activity</h3>
-        <p className="text-sm text-muted-foreground text-center py-8">
-          No activity yet
-        </p>
-      </div>
-    );
-  }
+  const recent = [...paths]
+    .sort((a, b) => new Date(b.updatedAt || 0).getTime() - new Date(a.updatedAt || 0).getTime())
+    .slice(0, 4);
 
   return (
-    <div className="bg-card border border-border rounded-xl p-6">
-      <h3 className="font-semibold mb-4">Recent activity</h3>
-      <div className="space-y-4">
-        {recentPaths.map((path) => {
-          const planStatus = getPlanStatus(path.planJson);
-          const isGenerating = planStatus === "generating";
-          const progress = path.progress?.percentage || 0;
-
-          return (
-            <div
-              key={path.id}
-              className="flex items-start gap-3 p-3 rounded-lg hover:bg-accent/10 transition-colors cursor-pointer"
-              onClick={() => navigate(`/learning-paths/${path.id}`)}
-            >
-              <div className="mt-1 p-1.5 rounded-md bg-primary/10 text-primary">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="14"
-                  height="14"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" />
-                  <polyline points="14 2 14 8 20 8" />
-                </svg>
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium truncate">{path.title}</p>
-                <div className="flex items-center gap-2 mt-1">
-                  <span className="text-xs text-muted-foreground">
-                    {formatRelativeTime(path.updatedAt)}
-                  </span>
-                  <span className="text-xs text-muted-foreground">•</span>
-                  {isGenerating ? (
-                    <span className="text-xs text-blue-600 dark:text-blue-400 font-medium">
-                      Generating...
-                    </span>
-                  ) : (
-                    <span className="text-xs text-muted-foreground">
-                      {progress}%
-                    </span>
-                  )}
+    <div className="bg-card border border-border rounded-xl p-4">
+      <p className="text-sm font-semibold mb-3">Recent activity</p>
+      {recent.length === 0 ? (
+        <p className="text-xs text-muted-foreground text-center py-6">No activity yet</p>
+      ) : (
+        <div className="divide-y divide-border">
+          {recent.map((path) => {
+            const isGenerating =
+              path.generationStatus === "generating" ||
+              path.generationStatus === "pending";
+            const progress = path.progress?.percentage || 0;
+            return (
+              <button
+                key={path.id}
+                className="w-full flex items-center gap-3 py-2.5 text-left hover:text-primary transition-colors first:pt-0 last:pb-0"
+                onClick={() => !isGenerating && navigate(`/learning-paths/${path.id}`)}
+              >
+                <div className="w-7 h-7 shrink-0 rounded-md bg-primary/10 flex items-center justify-center text-primary">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                    <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
+                    <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
+                  </svg>
                 </div>
-              </div>
-            </div>
-          );
-        })}
-      </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium leading-tight truncate">{path.title}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    {formatRelativeTime(path.updatedAt)}
+                    {!isGenerating && <span className="ml-1 text-muted-foreground/70">· {progress}%</span>}
+                    {isGenerating && <span className="ml-1 text-blue-500">· Generating…</span>}
+                  </p>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 };

@@ -1,6 +1,6 @@
 import { memo } from "react";
 import { Link } from "react-router-dom";
-import type { Task } from "../services/type";
+import type { LearningItem } from "../services/type";
 
 // ============================================================================
 // Icon Components
@@ -114,7 +114,7 @@ TaskMetadata.displayName = "TaskMetadata";
 // ============================================================================
 
 interface TaskListItemProps {
-  task: Task;
+  task: LearningItem;
   index: number;
   learningPathId: string;
   checkpointId: string;
@@ -135,7 +135,7 @@ export const TaskListItem = memo(
     realCheckpointId,
     checkpointTitle,
   }: TaskListItemProps) => {
-    const isCompleted = task.completed;
+    const isCompleted = task.isCompleted;
 
     return (
       <Link
@@ -164,7 +164,7 @@ export const TaskListItem = memo(
             >
               {task.title}
             </h3>
-            <TaskMetadata estimatedTime={task.estimatedTime} type={task.type} />
+            <TaskMetadata type={task.type} />
           </div>
 
           <div className="ml-4 flex-shrink-0">

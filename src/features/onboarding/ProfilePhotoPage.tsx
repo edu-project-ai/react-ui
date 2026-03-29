@@ -174,7 +174,7 @@ export const ProfilePhotoPage = () => {
             Skip for now
           </Button>
           <Button
-            variant="primary"
+            variant="default"
             onClick={handleNext}
             disabled={!selectedImage}
             className="flex-1"

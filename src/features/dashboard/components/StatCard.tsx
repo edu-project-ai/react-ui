@@ -1,5 +1,6 @@
 import React from "react";
 import { cn } from "@/lib/utils";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export interface StatCardProps {
   title: string;
@@ -20,39 +21,35 @@ export const StatCard: React.FC<StatCardProps> = ({
   className,
 }) => {
   return (
-    <div
-      className={cn("p-4 rounded-lg border border-border bg-card", className)}
-    >
-      <div className="flex justify-between items-start">
-        <div>
-          <p className="text-sm font-medium text-muted-foreground">{title}</p>
-          <h4 className="text-2xl font-bold mt-1">{value}</h4>
-
-          {trend && (
-            <div className="flex items-center mt-1">
-              <span
-                className={cn(
-                  "text-xs",
-                  trend.isPositive ? "text-green-500" : "text-red-500"
-                )}
-              >
-                {trend.isPositive ? "+" : "-"}
-                {Math.abs(trend.value)}%
-              </span>
-              <span className="text-xs text-muted-foreground ml-1">
-                з минулого місяця
-              </span>
-            </div>
-          )}
-        </div>
-
+    <Card className={className}>
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+        <CardTitle className="text-sm font-medium text-muted-foreground">
+          {title}
+        </CardTitle>
         {icon && (
           <div className="p-2 rounded-md bg-primary/10 text-primary">
             {icon}
           </div>
         )}
-      </div>
-    </div>
+      </CardHeader>
+      <CardContent>
+        <div className="text-2xl font-bold">{value}</div>
+        {trend && (
+          <p className="text-xs text-muted-foreground mt-1">
+            <span
+              className={cn(
+                "font-medium mr-1",
+                trend.isPositive ? "text-green-500" : "text-red-500"
+              )}
+            >
+              {trend.isPositive ? "+" : "-"}
+              {Math.abs(trend.value)}%
+            </span>
+            з минулого місяця
+          </p>
+        )}
+      </CardContent>
+    </Card>
   );
 };
 

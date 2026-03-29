@@ -1,8 +1,9 @@
-import { memo } from "react";
-import { Link, useParams } from "react-router-dom";
-import { useGetLearningPathByIdQuery } from "../api/learningPathsApi";
+import { memo, useState as useStateReact } from "react";
+import { Link, useParams, useNavigate } from "react-router-dom";
+import { useGetLearningPathByIdQuery, useUpdateLearningPathStatusMutation } from "../api/learningPathsApi";
 import { Spinner } from "@/components/ui/spinner";
-import type { Checkpoint } from "../services/type";
+import { Button } from "@/components/ui/button";
+import type { CheckpointPreview } from "../services/type";
 import { ProgressBar } from "./ProgressBar";
 import { CheckpointTimelineItem } from "./CheckpointTimelineItem";
 
@@ -23,14 +24,7 @@ const BackArrowIcon = memo(() => (
 ));
 BackArrowIcon.displayName = "BackArrowIcon";
 
-/**
- * Helper to extract status from planJson
- */
-const getPlanStatus = (planJson?: Record<string, unknown> | null): string | null => {
-  if (!planJson) return null;
-  const status = planJson.Status ?? planJson.status;
-  return typeof status === "string" ? status : null;
-};
+
 
 const SpinnerIcon = memo(({ className = "w-5 h-5" }: { className?: string }) => (
   <svg
@@ -242,7 +236,7 @@ const LearningPathHeader = memo(({
 LearningPathHeader.displayName = "LearningPathHeader";
 
 interface CheckpointsTimelineProps {
-  checkpoints: Checkpoint[];
+  checkpoints: CheckpointPreview[];
   learningPathId: string;
 }
 
@@ -274,11 +268,24 @@ CheckpointsTimeline.displayName = "CheckpointsTimeline";
 
 export const LearningPathDetailPage = () => {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const {
     data: learningPath,
     isLoading,
     error,
   } = useGetLearningPathByIdQuery(id!);
+  const [updateStatus, { isLoading: isDeactivating }] = useUpdateLearningPathStatusMutation();
+  const [showDeactivateConfirm, setShowDeactivateConfirm] = useStateReact(false);
+
+  const handleDeactivate = async () => {
+    if (!id) return;
+    try {
+      await updateStatus({ id, isActive: false }).unwrap();
+      navigate("/learning-paths");
+    } catch {
+      // error handled by RTK Query
+    }
+  };
 
   if (isLoading) {
     return <LoadingState />;
@@ -292,8 +299,9 @@ export const LearningPathDetailPage = () => {
     learningPath.progress && learningPath.progress.percentage >= 100;
   
   // Check if the learning path is still being generated
-  const planStatus = getPlanStatus(learningPath.planJson);
-  const isGenerating = planStatus === "generating";
+  const isGenerating = ["pending", "processing", "generating"].includes(
+    learningPath.generationStatus || ""
+  );
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-5xl">
@@ -309,15 +317,52 @@ export const LearningPathDetailPage = () => {
 
         <LearningPathHeader
           title={learningPath.title}
-          description={learningPath.description}
+          description={learningPath.description || ""}
           isActive={learningPath.isActive}
           isCompleted={!!isCompleted}
           isGenerating={isGenerating}
           difficultyLevel={learningPath.difficultyLevel}
-          estimatedDays={learningPath.estimatedDays}
+          estimatedDays={learningPath.estimatedDays ?? undefined}
           checkpointCount={learningPath.checkpoints.length}
           progress={learningPath.progress}
         />
+
+        {/* Deactivate Roadmap */}
+        {learningPath.isActive && !isGenerating && (
+          <div className="mt-4">
+            {showDeactivateConfirm ? (
+              <div className="flex items-center gap-3 p-4 bg-destructive/5 border border-destructive/20 rounded-lg">
+                <p className="text-sm text-foreground flex-1">
+                  Are you sure you want to deactivate this roadmap? It will be hidden from all pages.
+                </p>
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={handleDeactivate}
+                  disabled={isDeactivating}
+                >
+                  {isDeactivating ? "Deactivating..." : "Confirm"}
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowDeactivateConfirm(false)}
+                >
+                  Cancel
+                </Button>
+              </div>
+            ) : (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowDeactivateConfirm(true)}
+                className="text-destructive border-destructive/30 hover:bg-destructive/10"
+              >
+                Deactivate Roadmap
+              </Button>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Checkpoints Section */}

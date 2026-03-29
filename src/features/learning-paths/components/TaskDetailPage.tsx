@@ -2,8 +2,10 @@ import { useState, memo, useCallback } from "react";
 import { useParams, useLocation, useNavigate } from "react-router-dom";
 import { useGetCheckpointQuery } from "../api/learningPathsApi";
 import { useLearningPaths } from "../hooks/useLearningPaths";
+
 import { Spinner } from "@/components/ui/spinner";
-import type { Task } from "../services/type";
+import type { LearningItem, Task } from "../services/type";
+import { LearningItemRenderer } from "./LearningItemRenderer";
 
 const BackArrowIcon = memo(() => (
   <svg
@@ -221,9 +223,10 @@ interface TaskHeaderProps {
   title: string;
   checkpointTitle?: string;
   task: Task;
+  isCompleted: boolean;
 }
 
-const TaskHeader = memo(({ title, checkpointTitle, task }: TaskHeaderProps) => (
+const TaskHeader = memo(({ title, checkpointTitle, task, isCompleted }: TaskHeaderProps) => (
   <>
     {checkpointTitle && (
       <p className="text-sm text-muted-foreground mb-2 font-medium">
@@ -243,7 +246,7 @@ const TaskHeader = memo(({ title, checkpointTitle, task }: TaskHeaderProps) => (
               language={task.language}
             />
           </div>
-          <CompletionStatusBadge isCompleted={task.completed} />
+          <CompletionStatusBadge isCompleted={isCompleted} />
         </div>
       </div>
     </div>
@@ -277,66 +280,86 @@ const ResourcesSection = memo(({ resources }: ResourcesSectionProps) => {
 ResourcesSection.displayName = "ResourcesSection";
 
 export const TaskDetailPage = () => {
-  const { id, taskId } = useParams<{ id: string; taskId: string }>();
+  const { id, taskId, checkpointId: paramCheckpointId } = useParams<{
+    id: string;
+    taskId: string;
+    checkpointId?: string;
+  }>();
   const location = useLocation();
   const navigate = useNavigate();
 
-  const { checkpointId, realCheckpointId, checkpointTitle } =
+  const { checkpointId: stateCheckpointId, realCheckpointId, checkpointTitle } =
     (location.state as {
       checkpointId?: string;
       realCheckpointId?: string;
       checkpointTitle?: string;
     }) || {};
 
+  // Use checkpointId from params first, then fallback to location.state
+  const effectiveCheckpointId = paramCheckpointId || stateCheckpointId;
+
   const [isUpdating, setIsUpdating] = useState(false);
   const { toggleTaskCompletion } = useLearningPaths();
 
+  // Use checkpoint details (drill-down) query to get tasks/items
   const {
     data: checkpoint,
     isLoading,
     error,
   } = useGetCheckpointQuery(
-    {
-      learningPathId: id!,
-      checkpointId: checkpointId!,
-    },
-    { skip: !checkpointId }
+    { learningPathId: id!, checkpointId: effectiveCheckpointId! },
+    { skip: !effectiveCheckpointId }
   );
 
-  const task = checkpoint?.tasks.find((t: Task) => t.id === taskId);
+  // Find the item from 'items' (new polymorphic shape) or fallback to 'tasks' (legacy)
+  const item = checkpoint?.items?.find((i) => i.id === taskId);
+  const legacyTask = checkpoint?.tasks?.find((t: Task) => t.id === taskId);
+  
+  // Determine if we have a polymorphic item (has discriminated 'type' field)
+  const isPolymorphicItem = item && ['Theory', 'CodingTask', 'Quiz'].includes(item.type);
+  
+  // Normalize completion status
+  const itemCompleted = item?.isCompleted ?? legacyTask?.completed ?? false; 
 
   const handleGoBack = useCallback(() => {
-    if (checkpointId) {
-      navigate(`/learning-paths/${id}/checkpoints/${checkpointId}`);
+    if (effectiveCheckpointId) {
+      navigate(`/learning-paths/${id}/checkpoints/${effectiveCheckpointId}`);
     } else {
       navigate(`/learning-paths/${id}`);
     }
-  }, [checkpointId, id, navigate]);
+  }, [effectiveCheckpointId, id, navigate]);
 
   const handleToggleCompletion = useCallback(async () => {
-    if (!task || !checkpointId) return;
+    const targetId = item?.id ?? legacyTask?.id;
+    if (!targetId || !effectiveCheckpointId) return;
 
     setIsUpdating(true);
     try {
-      const apiCheckpointId = realCheckpointId || checkpointId;
+      const apiCheckpointId = realCheckpointId || effectiveCheckpointId;
 
       await toggleTaskCompletion({
         learningPathId: id!,
         checkpointId: apiCheckpointId,
-        taskId: task.id,
-        completed: !task.completed,
-        cacheCheckpointId: checkpointId,
+        taskId: targetId,
+        completed: !itemCompleted,
+        cacheCheckpointId: effectiveCheckpointId,
       });
     } finally {
       setIsUpdating(false);
     }
-  }, [task, checkpointId, realCheckpointId, id, toggleTaskCompletion]);
+  }, [item, legacyTask, effectiveCheckpointId, realCheckpointId, id, toggleTaskCompletion, itemCompleted]);
+
+
+  // If checkpointId is missing we can't fetch the drill-down; show an error with a back action
+  if (!effectiveCheckpointId) {
+    return <ErrorState onGoBack={handleGoBack} />;
+  }
 
   if (isLoading) {
     return <LoadingState />;
   }
 
-  if (error || !checkpoint || !task) {
+  if (error || !checkpoint || (!item && !legacyTask)) {
     return <ErrorState onGoBack={handleGoBack} />;
   }
 
@@ -352,24 +375,27 @@ export const TaskDetailPage = () => {
           Back to Checkpoint
         </button>
 
-        <TaskHeader
-          title={task.title}
-          checkpointTitle={checkpointTitle}
-          task={task}
-        />
+        {/* Type-specific Detail View or Legacy Fallback */}
+        {isPolymorphicItem && item ? (
+          <LearningItemRenderer item={item as LearningItem} />
+        ) : legacyTask ? (
+          <TaskHeader
+            title={legacyTask.title}
+            checkpointTitle={checkpointTitle}
+            task={legacyTask}
+            isCompleted={itemCompleted}
+          />
+        ) : null}
 
         {/* Completion Button */}
         <div className="mt-8 pt-6 border-t border-border">
           <CompletionButton
-            isCompleted={task.completed}
+            isCompleted={itemCompleted}
             isUpdating={isUpdating}
             onClick={handleToggleCompletion}
           />
         </div>
       </div>
-
-      {/* Resources Section */}
-      <ResourcesSection resources={task.resources as Record<string, unknown>} />
     </div>
   );
 };

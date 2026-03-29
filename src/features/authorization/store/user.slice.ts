@@ -18,7 +18,6 @@ interface UserState {
   loading: boolean;
   error: string | null;
   isAuthenticated: boolean;
-  theme: "light" | "dark";
 }
 
 const initialState: UserState = {
@@ -26,7 +25,6 @@ const initialState: UserState = {
   loading: false,
   error: null,
   isAuthenticated: false,
-  theme: (localStorage.getItem("theme") as "light" | "dark") || "light",
 };
 
 export const signUp = createAsyncThunk<SignUpResponse, SignUpRequest>(
@@ -129,15 +127,6 @@ const userSlice = createSlice({
   name: "user",
   initialState,
   reducers: {
-    toggleTheme: (state) => {
-      const newTheme = state.theme === "light" ? "dark" : "light";
-      state.theme = newTheme;
-      localStorage.setItem("theme", newTheme);
-    },
-    setTheme: (state, action: PayloadAction<"light" | "dark">) => {
-      state.theme = action.payload;
-      localStorage.setItem("theme", action.payload);
-    },
     setCurrentUser: (state, action: PayloadAction<User | null>) => {
       state.currentUser = action.payload;
       state.isAuthenticated = !!action.payload;
@@ -253,7 +242,7 @@ const userSlice = createSlice({
   },
 });
 
-export const { toggleTheme, setTheme, setCurrentUser, clearError } =
+export const { setCurrentUser, clearError } =
   userSlice.actions;
 
 export default userSlice.reducer;

@@ -1,6 +1,6 @@
 import { memo } from "react";
 import { Link } from "react-router-dom";
-import type { Checkpoint } from "../services/type";
+import type { CheckpointPreview } from "../services/type";
 import { isCheckpointCompleted } from "../utils/progress-helpers";
 
 // ============================================================================
@@ -23,23 +23,6 @@ const CheckIcon = memo(() => (
   </svg>
 ));
 CheckIcon.displayName = "CheckIcon";
-
-const ClockIcon = memo(() => (
-  <svg
-    className="w-3 h-3 mr-1"
-    fill="none"
-    stroke="currentColor"
-    viewBox="0 0 24 24"
-  >
-    <path
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      strokeWidth={2}
-      d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-    />
-  </svg>
-));
-ClockIcon.displayName = "ClockIcon";
 
 const ArrowRightIcon = memo(() => (
   <svg
@@ -88,7 +71,7 @@ TimelineDot.displayName = "TimelineDot";
 // ============================================================================
 
 interface CheckpointCardContentProps {
-  checkpoint: Checkpoint;
+  checkpoint: CheckpointPreview;
   index: number;
   isCompleted: boolean;
 }
@@ -106,12 +89,6 @@ const CheckpointCardContent = memo(
         >
           Checkpoint {index + 1}
         </span>
-        {checkpoint.estimatedDays && (
-          <span className="text-xs text-muted-foreground flex items-center">
-            <ClockIcon />
-            {checkpoint.estimatedDays} days
-          </span>
-        )}
       </div>
       <h3 className="text-xl font-bold text-foreground mb-2 group-hover:text-primary transition-colors">
         {checkpoint.title}
@@ -140,7 +117,7 @@ CheckpointCardContent.displayName = "CheckpointCardContent";
 // ============================================================================
 
 interface CheckpointTimelineItemProps {
-  checkpoint: Checkpoint;
+  checkpoint: CheckpointPreview;
   index: number;
   learningPathId: string;
 }

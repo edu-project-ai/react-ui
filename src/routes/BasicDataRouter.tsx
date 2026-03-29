@@ -25,6 +25,10 @@ import {
   LearningPathDetailPage,
   CheckpointPage,
   TaskDetailPage,
+  ResourceDetailPage,
+  ProgressPage,
+  ResourcesPage,
+  IdePage,
 } from "@/features";
 
 const BasicDataRouter = () => {
@@ -44,18 +48,26 @@ const BasicDataRouter = () => {
 
         {/* Onboarding Wizard - Single entry point */}
         <Route path="/onboarding" Component={OnboardingWizard} />
-        
+
+        {/* Standalone IDE workspace — full-screen, no sidebar/header */}
+        <Route path="/workspace/:learningPathId/:itemId" Component={IdePage} />
+
         {/* Private routes */}
         <Route path="/" Component={PrivateLayout}>
           <Route path="/dashboard" Component={DashboardPage} />
+          <Route path="/progress" Component={ProgressPage} />
           <Route path="/settings" Component={SettingsPage} />
           
           {/* Learning Paths routes */}
           <Route path="/learning-paths" Component={LearningPathsPage} />
-          <Route path="/learning-paths/create" Component={CreateLearningPathPage} />
+          <Route path="/create-roadmap" Component={CreateLearningPathPage} />
           <Route path="/learning-paths/:id" Component={LearningPathDetailPage} />
           <Route path="/learning-paths/:id/checkpoints/:checkpointId" Component={CheckpointPage} />
+          <Route path="/learning-paths/:id/checkpoints/:checkpointId/tasks/:taskId" Component={TaskDetailPage} />
           <Route path="/learning-paths/:id/tasks/:taskId" Component={TaskDetailPage} />
+          <Route path="/learning-paths/:id/resources/:resourceId" Component={ResourceDetailPage} />
+          <Route path="/resources/:resourceId" Component={ResourceDetailPage} />
+          <Route path="/resources" Component={ResourcesPage} />
         </Route>
     
         <Route path="*" Component={NotFound} />

@@ -189,7 +189,7 @@ export const PhotoStep = ({ state, onUpdate, onNext, onSkip }: PhotoStepProps) =
           Skip for now
         </Button>
         <Button
-          variant="primary"
+          variant="default"
           onClick={handleNext}
           disabled={!state.photoPreview || isLoading}
           className="flex-1"
