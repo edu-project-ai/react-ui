@@ -71,7 +71,14 @@ export const codeExecutionApi = apiSlice.injectEndpoints({
         };
       },
     }),
+
+    deleteSession: builder.mutation<void, void>({
+      query: () => ({
+        url: '/api/code-execution/sessions',
+        method: 'DELETE',
+      }),
+    }),
   }),
 });
 
-export const { useStartSessionMutation, useStartTaskSessionMutation } = codeExecutionApi;
+export const { useStartSessionMutation, useStartTaskSessionMutation, useDeleteSessionMutation } = codeExecutionApi;

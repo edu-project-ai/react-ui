@@ -92,6 +92,7 @@ export const learningPathsApi = apiSlice.injectEndpoints({
       invalidatesTags: (_result, _error, { learningPathId }) => [
         { type: "LearningPath", id: learningPathId },
         { type: "LearningPath", id: "LIST" },
+        "Statistics",
       ],
     }),
 

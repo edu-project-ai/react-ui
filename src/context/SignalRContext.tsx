@@ -30,7 +30,8 @@ export const SignalRProvider: React.FC<{ children: React.ReactNode }> = ({
       start();
 
       return () => {
-         // signalRService.stopConnection();
+         signalRService.stopConnection();
+         setIsConnected(false);
       };
     }
   }, [isAuthenticated]);

@@ -5,6 +5,7 @@ import { ArrowLeft, Loader2 } from 'lucide-react';
 
 import { useGetCodingTaskQuery } from '@/features/learning-paths';
 import { useIdeStore } from '../store/useIdeStore';
+import { useDeleteSessionMutation } from '../api/codeExecutionApi';
 import { ActivityBar } from '../components/ActivityBar';
 import { Sidebar } from '../components/Sidebar';
 import { EditorArea } from '../components/EditorArea';
@@ -33,14 +34,30 @@ export function IdePage() {
   const sidebarVisible = useIdeStore((s) => s.sidebarVisible);
   const browserVisible = useIdeStore((s) => s.browserVisible);
   const setSessionInfo = useIdeStore((s) => s.setSessionInfo);
+  const containerId = useIdeStore((s) => s.containerId);
   const reset = useIdeStore((s) => s.reset);
+  const [deleteSession] = useDeleteSessionMutation();
 
-  // Reset IDE state on unmount
+  // Cleanup container session on unmount and beforeunload
   useEffect(() => {
+    const handleBeforeUnload = () => {
+      if (containerId) {
+        navigator.sendBeacon(
+          `${import.meta.env.VITE_API_BASE_URL}/api/code-execution/sessions`,
+          JSON.stringify({ _method: 'DELETE' }),
+        );
+      }
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
     return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      if (containerId) {
+        deleteSession();
+      }
       reset();
     };
-  }, [reset]);
+  }, [containerId, deleteSession, reset]);
 
   // ── Prevent browser Ctrl+S ──
   useEffect(() => {
