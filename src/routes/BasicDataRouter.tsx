@@ -29,6 +29,7 @@ import {
   ProgressPage,
   ResourcesPage,
   IdePage,
+  AiMentorPage,
 } from "@/features";
 
 const BasicDataRouter = () => {
@@ -68,6 +69,9 @@ const BasicDataRouter = () => {
           <Route path="/learning-paths/:id/resources/:resourceId" Component={ResourceDetailPage} />
           <Route path="/resources/:resourceId" Component={ResourceDetailPage} />
           <Route path="/resources" Component={ResourcesPage} />
+
+          {/* AI Mentor */}
+          <Route path="/ai-mentor" Component={AiMentorPage} />
         </Route>
     
         <Route path="*" Component={NotFound} />
