@@ -1,6 +1,15 @@
 import React, { useMemo } from "react";
 import { useGetActivityCalendarQuery } from "@/features/progress";
 
+// Returns YYYY-MM-DD in local time (toISOString() would shift to UTC and break date keys).
+const toLocalDateKey = (d: Date): string => {
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+};
+
+const BAR_AREA_PX = 56; // px available for bars (parent h-20 = 80px minus label ~16px, gap 4px)
+const MIN_BAR_PX = 4;   // minimum visible height for zero-value bars (muted)
+
 export const ActivityCalendar: React.FC = () => {
   const { data: activityData, isLoading } = useGetActivityCalendarQuery(7);
 
@@ -12,7 +21,7 @@ export const ActivityCalendar: React.FC = () => {
       date.setDate(today.getDate() - i);
       result.push({
         label: date.toLocaleDateString("en-US", { weekday: "short" }),
-        date: date.toISOString().split("T")[0],
+        date: toLocalDateKey(date),
       });
     }
     return result;
@@ -47,7 +56,10 @@ export const ActivityCalendar: React.FC = () => {
 
       <div className="flex items-end gap-1.5 h-20">
         {chartData.map((value, index) => {
-          const pct = (value / maxActivity) * 100;
+          // Use explicit px heights — percentage heights collapse inside items-end flex children.
+          const barHeight = value > 0
+            ? Math.max(Math.round((value / maxActivity) * BAR_AREA_PX), MIN_BAR_PX + 2)
+            : MIN_BAR_PX;
           const isToday = index === 6;
           return (
             <div key={index} className="relative flex flex-col items-center gap-1 flex-1 group">
@@ -61,7 +73,7 @@ export const ActivityCalendar: React.FC = () => {
                     ? isToday ? "bg-primary" : "bg-primary/50"
                     : "bg-muted"
                 }`}
-                style={{ height: `${Math.max(pct, 8)}%` }}
+                style={{ height: `${barHeight}px` }}
               />
               <span className={`text-[10px] ${isToday ? "text-primary font-semibold" : "text-muted-foreground"}`}>
                 {days[index].label}

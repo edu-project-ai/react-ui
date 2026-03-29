@@ -43,6 +43,11 @@ Behavior requirements:
 - Frameworks/Libraries: FastAPI, Pydantic, pydantic-settings, Celery, aio-pika/pika, LangChain integrations
 - Testing: Pytest
 
+### API Testing
+- Use **Postman MCP** (`mcp_com_postman_p_*` tools) for exploratory API testing, contract verification, and collection management.
+- Prefer Postman MCP over ad-hoc curl or manual requests when verifying endpoint behavior during implementation or review.
+- Collections produced via Postman MCP can serve as living contract documentation alongside integration tests.
+
 ## Core Architectural Pattern
 - The project follows Clean Architecture with explicit service boundaries.
 - Dependencies must flow inward.
@@ -134,6 +139,7 @@ Do not compromise this behavior for speed.
 - If `python_service` consumes or emits structured AI data, validate with schemas and normalize provider output.
 - If the UI talks to backend APIs, route via RTK Query rather than ad-hoc fetch logic.
 - If the change crosses services, define and preserve explicit message or API contracts with correlation IDs.
+- When verifying API contracts or testing new endpoints, use **Postman MCP** tools (`mcp_com_postman_p_runCollection`, `mcp_com_postman_p_createCollectionRequest`, etc.) instead of ad-hoc scripts.
 
 5. Enforce architectural constraints before coding:
 - No layer leaks
@@ -144,6 +150,7 @@ Do not compromise this behavior for speed.
 6. Require verification:
 - Unit tests for changed logic
 - Integration coverage where boundaries or contracts changed
+- API contract verification via **Postman MCP** when endpoints are added or changed
 - Clear statement of residual risks if full verification is not feasible
 
 ## Review Protocol
@@ -178,7 +185,7 @@ Do not consider work complete unless all of the following are true:
 - Affected layers and files
 - Architectural approach
 - Contract changes
-- Validation and testing plan
+- Validation and testing plan (include Postman MCP collection/request steps where API surface changes)
 - Residual risks
 
 ### For Reviews
