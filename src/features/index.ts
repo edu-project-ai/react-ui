@@ -35,6 +35,7 @@ export {
 export { ProgressPage } from "./progress";
 export { IdePage } from "./ide";
 export { AiMentorPage } from "./ai-mentor";
+export { AdminUsersPage, AwsDashboardPage } from "./admin";
 
 // Authorization feature
 export * from "./authorization";

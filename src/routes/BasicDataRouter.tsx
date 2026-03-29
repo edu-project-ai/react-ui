@@ -30,6 +30,8 @@ import {
   ResourcesPage,
   IdePage,
   AiMentorPage,
+  AdminUsersPage,
+  AwsDashboardPage,
 } from "@/features";
 
 const BasicDataRouter = () => {
@@ -72,6 +74,10 @@ const BasicDataRouter = () => {
 
           {/* AI Mentor */}
           <Route path="/ai-mentor" Component={AiMentorPage} />
+
+          {/* Admin */}
+          <Route path="/admin/users" Component={AdminUsersPage} />
+          <Route path="/admin/aws" Component={AwsDashboardPage} />
         </Route>
     
         <Route path="*" Component={NotFound} />

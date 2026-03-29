@@ -277,6 +277,65 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </Link>
           );
         })}
+
+        {/* Admin Section */}
+        {user?.role?.title === "Admin" && (
+          <>
+            <div className="my-4 border-t border-border/50" />
+            {[
+              {
+                href: "/admin/users",
+                label: "User Management",
+                icon: (
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+                    <circle cx="9" cy="7" r="4" />
+                    <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+                    <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                  </svg>
+                ),
+              },
+              {
+                href: "/admin/aws",
+                label: "AWS Dashboard",
+                icon: (
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <ellipse cx="12" cy="5" rx="9" ry="3" />
+                    <path d="M3 5V19A9 3 0 0 0 21 19V5" />
+                    <path d="M3 12A9 3 0 0 0 21 12" />
+                  </svg>
+                ),
+              },
+            ].map((item) => {
+              const isActive = location.pathname === item.href;
+              return (
+                <Link
+                  key={item.href}
+                  to={item.href}
+                  className={cn(
+                    "flex items-center gap-3 px-3 py-2.5 rounded-md transition-all duration-200 group relative",
+                    isActive
+                      ? "bg-primary/10 text-primary font-medium"
+                      : "text-muted-foreground hover:bg-accent/10 hover:text-foreground"
+                  )}
+                  title={isCollapsed ? item.label : undefined}
+                >
+                  <span className={cn("min-w-5", isActive ? "text-primary" : "")}>
+                    {item.icon}
+                  </span>
+                  <span
+                    className={cn(
+                      "whitespace-nowrap transition-all duration-300 overflow-hidden",
+                      isCollapsed ? "w-0 opacity-0" : "w-auto opacity-100"
+                    )}
+                  >
+                    {item.label}
+                  </span>
+                </Link>
+              );
+            })}
+          </>
+        )}
       </nav>
 
       {/* User Profile */}
