@@ -34,6 +34,7 @@ export {
 } from "./learning-paths";
 export { ProgressPage } from "./progress";
 export { IdePage } from "./ide";
+export { AiMentorPage } from "./ai-mentor";
 
 // Authorization feature
 export * from "./authorization";
