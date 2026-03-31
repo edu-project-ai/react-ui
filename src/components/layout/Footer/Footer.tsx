@@ -1,4 +1,5 @@
 import React from "react";
+import { Link } from "react-router-dom";
 import { motion } from "motion/react";
 import logo from "@/assets/Roadly-logo.png";
 
@@ -20,7 +21,7 @@ export const Footer: React.FC = () => {
               <img src={logo} alt="Logo" className="w-6 h-6" />
             </div>
             <div>
-              <div className="font-bold text-lg">LearnPath AI</div>
+              <div className="font-bold text-lg">Roadly</div>
               <div className="text-xs text-muted-foreground">
                 Master coding your way
               </div>
@@ -34,42 +35,24 @@ export const Footer: React.FC = () => {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
           >
-            <a
-              href="#"
+            <Link
+              to="/about"
               className="text-muted-foreground hover:text-primary transition-colors"
             >
               About
-            </a>
-            <a
-              href="#features"
+            </Link>
+            <Link
+              to="/features"
               className="text-muted-foreground hover:text-primary transition-colors"
             >
               Features
-            </a>
-            <a
-              href="#"
-              className="text-muted-foreground hover:text-primary transition-colors"
-            >
-              Pricing
-            </a>
-            <a
-              href="#"
+            </Link>
+            <Link
+              to="/contact"
               className="text-muted-foreground hover:text-primary transition-colors"
             >
               Contact
-            </a>
-            <a
-              href="#"
-              className="text-muted-foreground hover:text-primary transition-colors"
-            >
-              Privacy
-            </a>
-            <a
-              href="#"
-              className="text-muted-foreground hover:text-primary transition-colors"
-            >
-              Terms
-            </a>
+            </Link>
           </motion.div>
 
           {/* Social links */}
@@ -141,7 +124,7 @@ export const Footer: React.FC = () => {
           transition={{ delay: 0.2 }}
         >
           <p>
-            &copy; {currentYear} LearnPath AI. All rights reserved. Built with{" "}
+            &copy; {currentYear} Roadly. All rights reserved. Built with{" "}
             <span className="text-red-500">❤</span> for developers.
           </p>
         </motion.div>

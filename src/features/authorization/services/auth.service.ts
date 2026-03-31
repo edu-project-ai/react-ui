@@ -274,10 +274,33 @@ export class AuthService {
   async getCurrentCognitoUser(): Promise<CognitoUser> {
     const { userId, username, signInDetails } = await getCurrentUser();
 
+    // Try to get email from signInDetails first
+    let email = signInDetails?.loginId;
+
+    // If email is not available or looks like a Google ID, try to get it from JWT token
+    if (!email || !email.includes('@') || email.toLowerCase().startsWith('google_')) {
+      try {
+        const session = await fetchAuthSession();
+        const tokenEmail = session.tokens?.idToken?.payload?.email as string | undefined;
+        if (tokenEmail) {
+          email = tokenEmail;
+        }
+      } catch (error) {
+        console.warn("Failed to extract email from JWT token:", error);
+      }
+    }
+
+    // Fallback to username only if it looks like an email
+    if (!email || !email.includes('@')) {
+      if (username.includes('@')) {
+        email = username;
+      }
+    }
+
     return {
       userId,
       username,
-      email: signInDetails?.loginId || username,
+      email: email || username, // Final fallback to username if nothing else works
     };
   }
 

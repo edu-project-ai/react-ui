@@ -27,8 +27,6 @@ import {
   signOut as signOutAction,
   setCurrentUser,
   clearError,
-  toggleTheme,
-  setTheme,
 } from "../store/user.slice";
 import { parseCognitoError } from "../utils/cognito-errors";
 
@@ -36,17 +34,17 @@ import { parseCognitoError } from "../utils/cognito-errors";
  * useUser Hook - Authorization State Management
  * 
  * WHAT THIS HOOK PROVIDES:
- * - Local state: currentUser (from Cognito), isAuthenticated, theme
+ * - Local state: currentUser (from Cognito), isAuthenticated
  * - Cognito operations: signUp, signIn, signOut, confirmSignUp
- * - Backend mutations: updateProfile (RTK Query)
+ * - Backend mutations: updateProfile (React Query)
  * 
  * WHAT THIS HOOK DOES NOT PROVIDE:
- * - ❌ Auto-fetching user profile from backend (use useGetUserProfileQuery directly)
- * - ❌ Backend queries (use RTK Query hooks from userApi.ts directly)
+ * - ❌ Auto-fetching user profile from backend (use useGetUserProfile directly)
+ * - ❌ Backend queries (use React Query hooks from user.queries.ts directly)
  * 
  * WHY NO AUTO-FETCHING?
  * - Avoids unnecessary 401 errors when user is not authenticated
- * - Components should explicitly call useGetUserProfileQuery when needed
+ * - Components should explicitly call useGetUserProfile when needed
  * - Keeps hook lightweight and focused on actions, not data fetching
  * 
  * EXAMPLE USAGE:
@@ -55,13 +53,13 @@ import { parseCognitoError } from "../utils/cognito-errors";
  * const { user, isAuthenticated, signIn, signOut } = useUser();
  * 
  * // For backend profile data (when needed)
- * const { data: profile, isLoading } = useGetUserProfileQuery();
+ * const { data: profile, isLoading } = useGetUserProfile();
  * ```
  */
 export const useUser = () => {
   const dispatch = useAppDispatch();
 
-  const [updateProfileMutation, { isLoading: isUpdatingProfile }] =
+  const [triggerUpdateProfile, { isLoading: isUpdatingProfile }] =
     useUpdateProfileMutation();
 
   const user = useAppSelector((state: RootState) => state.user?.currentUser);
@@ -70,7 +68,6 @@ export const useUser = () => {
   const isAuthenticated = useAppSelector(
     (state: RootState) => state.user?.isAuthenticated
   );
-  const theme = useAppSelector((state: RootState) => state.user?.theme);
 
   /**
    * Sign up new user
@@ -266,14 +263,14 @@ export const useUser = () => {
   };
 
   /**
-   * Update user profile using RTK Query
+   * Update user profile using React Query
    * @returns Result object with success status
    */
   const updateProfile = async (
     data: UpdateUserRequest
   ): Promise<UpdateProfileResult> => {
     try {
-      const updatedUser = await updateProfileMutation(data).unwrap();
+      const updatedUser = await triggerUpdateProfile(data).unwrap();
       toast.success("Profile updated successfully!");
       return {
         success: true,
@@ -305,20 +302,6 @@ export const useUser = () => {
   };
 
   /**
-   * Toggle theme between light and dark
-   */
-  const handleToggleTheme = () => {
-    dispatch(toggleTheme());
-  };
-
-  /**
-   * Set specific theme
-   */
-  const handleSetTheme = (theme: "light" | "dark") => {
-    dispatch(setTheme(theme));
-  };
-
-  /**
    * Check if user has completed profile
    */
   const hasProfile = async () => {
@@ -331,7 +314,6 @@ export const useUser = () => {
     loading: loading || isUpdatingProfile,
     error,
     isAuthenticated,
-    theme,
     isUpdatingProfile,
 
     // Actions
@@ -345,7 +327,5 @@ export const useUser = () => {
     setUser,
     hasProfile,
     clearError: clearErrorMessage,
-    toggleTheme: handleToggleTheme,
-    setTheme: handleSetTheme,
   };
 };

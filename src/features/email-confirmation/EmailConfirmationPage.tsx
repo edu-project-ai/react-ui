@@ -255,7 +255,7 @@ export const EmailConfirmationPage = () => {
 
             {/* Submit button */}
             <Button
-              variant="primary"
+              variant="default"
               onClick={handleSubmit}
               disabled={!isCodeComplete || isLoading}
               className="w-full mb-4"

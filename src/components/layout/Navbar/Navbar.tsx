@@ -55,6 +55,11 @@ function RightSection({
     return (
       <div className="hidden lg:flex items-center gap-3">
         <ThemeToggle />
+        <Link to="/create-roadmap">
+          <Button variant="outline" size="sm">
+            + New Roadmap
+          </Button>
+        </Link>
         <Link to="/dashboard">
           <Button
             variant="ghost"
@@ -85,7 +90,7 @@ function RightSection({
         </Button>
       </Link>
       <Link to="/register">
-        <Button variant="primary" size="sm">
+        <Button variant="default" size="sm">
           Get Started
         </Button>
       </Link>
@@ -210,21 +215,28 @@ export function Navbar() {
                   <ThemeToggle />
                 </div>
                 {authenticated && user ? (
-                  <Link to="/dashboard" onClick={() => setOpenNav(false)}>
-                    <Button
-                      variant="primary"
-                      size="sm"
-                      className="w-full flex items-center justify-center gap-2"
-                    >
-                      <div className="w-6 h-6 rounded-full bg-primary-foreground/20 flex items-center justify-center">
-                        <span className="text-xs font-semibold">
-                          {user.displayName?.charAt(0).toUpperCase() ||
-                            user.email?.charAt(0).toUpperCase()}
-                        </span>
-                      </div>
-                      <span>{user.displayName || user.email}</span>
-                    </Button>
-                  </Link>
+                  <>
+                    <Link to="/create-roadmap" onClick={() => setOpenNav(false)}>
+                      <Button variant="outline" size="sm" className="w-full">
+                        + New Roadmap
+                      </Button>
+                    </Link>
+                    <Link to="/dashboard" onClick={() => setOpenNav(false)}>
+                      <Button
+                        variant="default"
+                        size="sm"
+                        className="w-full flex items-center justify-center gap-2"
+                      >
+                        <div className="w-6 h-6 rounded-full bg-primary-foreground/20 flex items-center justify-center">
+                          <span className="text-xs font-semibold">
+                            {user.displayName?.charAt(0).toUpperCase() ||
+                              user.email?.charAt(0).toUpperCase()}
+                          </span>
+                        </div>
+                        <span>{user.displayName || user.email}</span>
+                      </Button>
+                    </Link>
+                  </>
                 ) : (
                   <>
                     <Link to="/login" onClick={() => setOpenNav(false)}>
@@ -237,7 +249,7 @@ export function Navbar() {
                       </Button>
                     </Link>
                     <Link to="/register" onClick={() => setOpenNav(false)}>
-                      <Button variant="primary" size="sm" className="w-full">
+                      <Button variant="default" size="sm" className="w-full">
                         Get Started
                       </Button>
                     </Link>

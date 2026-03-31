@@ -26,6 +26,16 @@ export interface User {
   createdAt: string;
   updatedAt: string;
   lastLoginAt?: string;
+  roleId?: string;
+  role?: UserRole;
+}
+
+/**
+ * Role assigned to a user
+ */
+export interface UserRole {
+  id: string;
+  title: string;
 }
 
 /**

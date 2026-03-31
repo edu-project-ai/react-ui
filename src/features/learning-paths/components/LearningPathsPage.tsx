@@ -1,9 +1,11 @@
-import { memo } from "react";
+import { memo, useState, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { useGetAllLearningPathsQuery } from "../api/learningPathsApi";
 import { Spinner } from "@/components/ui/spinner";
 import type { LearningPath } from "../services/type";
 import { LearningPathCard } from "./LearningPathCard";
+
+const DIFFICULTY_OPTIONS = ["All", "Beginner", "Intermediate", "Advanced"];
 
 const PlusIcon = memo(() => (
   <svg
@@ -31,7 +33,7 @@ const HeroSection = memo(() => (
       Master new skills with structured roadmaps tailored to your goals.
     </p>
     <Link
-      to="/learning-paths/create"
+      to="/create-roadmap"
       className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-primary-foreground bg-primary hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary transition-colors"
     >
       <PlusIcon />
@@ -78,6 +80,57 @@ interface LearningPathsGridProps {
   paths: LearningPath[];
 }
 
+interface FilterBarProps {
+  difficulty: string;
+  onDifficultyChange: (d: string) => void;
+  showArchived: boolean;
+  onShowArchivedChange: (v: boolean) => void;
+  totalCount: number;
+  filteredCount: number;
+}
+
+const FilterBar = memo(({
+  difficulty,
+  onDifficultyChange,
+  showArchived,
+  onShowArchivedChange,
+  totalCount,
+  filteredCount,
+}: FilterBarProps) => (
+  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8 p-4 bg-card border border-border rounded-xl">
+    <div className="flex flex-wrap gap-2">
+      {DIFFICULTY_OPTIONS.map((d) => (
+        <button
+          key={d}
+          onClick={() => onDifficultyChange(d)}
+          className={`px-3 py-1.5 text-xs font-medium rounded-full transition-colors ${
+            difficulty === d
+              ? "bg-primary text-primary-foreground"
+              : "bg-muted text-muted-foreground hover:bg-muted/80"
+          }`}
+        >
+          {d}
+        </button>
+      ))}
+    </div>
+    <div className="flex items-center gap-4">
+      <span className="text-xs text-muted-foreground">
+        {filteredCount} of {totalCount}
+      </span>
+      <label className="flex items-center gap-2 cursor-pointer select-none">
+        <div
+          onClick={() => onShowArchivedChange(!showArchived)}
+          className={`relative w-9 h-5 rounded-full transition-colors ${showArchived ? "bg-primary" : "bg-muted"}`}
+        >
+          <span className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${showArchived ? "translate-x-4" : "translate-x-0"}`} />
+        </div>
+        <span className="text-xs text-muted-foreground">Show archived</span>
+      </label>
+    </div>
+  </div>
+));
+FilterBar.displayName = "FilterBar";
+
 const LearningPathsGrid = memo(({ paths }: LearningPathsGridProps) => (
   <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
     {paths.map((path) => (
@@ -94,6 +147,20 @@ export const LearningPathsPage = () => {
     error,
   } = useGetAllLearningPathsQuery();
 
+  const [difficulty, setDifficulty] = useState("All");
+  const [showArchived, setShowArchived] = useState(false);
+
+  const filteredPaths = useMemo(() => {
+    if (!learningPaths) return [];
+    return learningPaths.filter((p) => {
+      const passesActive = showArchived ? true : p.isActive !== false;
+      const passesDifficulty =
+        difficulty === "All" ||
+        p.difficultyLevel?.toLowerCase() === difficulty.toLowerCase();
+      return passesActive && passesDifficulty;
+    });
+  }, [learningPaths, difficulty, showArchived]);
+
   if (isLoading) {
     return <LoadingState />;
   }
@@ -102,13 +169,27 @@ export const LearningPathsPage = () => {
     return <ErrorState />;
   }
 
-  const hasLearningPaths = learningPaths && learningPaths.length > 0;
-
   return (
     <div className="container mx-auto px-4 py-8">
       <HeroSection />
-      {hasLearningPaths ? (
-        <LearningPathsGrid paths={learningPaths} />
+      {learningPaths && learningPaths.length > 0 ? (
+        <>
+          <FilterBar
+            difficulty={difficulty}
+            onDifficultyChange={setDifficulty}
+            showArchived={showArchived}
+            onShowArchivedChange={setShowArchived}
+            totalCount={learningPaths.length}
+            filteredCount={filteredPaths.length}
+          />
+          {filteredPaths.length > 0 ? (
+            <LearningPathsGrid paths={filteredPaths} />
+          ) : (
+            <div className="bg-muted rounded-lg p-8 text-center">
+              <p className="text-muted-foreground text-sm">No roadmaps match the selected filters.</p>
+            </div>
+          )}
+        </>
       ) : (
         <EmptyState />
       )}

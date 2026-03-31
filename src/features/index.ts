@@ -2,6 +2,9 @@
 export * from "./home";
 export * from "./dashboard";
 export * from "./learning-paths";
+export * from "./progress/api/statisticsApi";
+export type { UserStatistics, ActivityCalendarData } from "./progress/types";
+export type { LearningPathProgress as ProgressLearningPathProgress } from "./progress/types";
 
 // All page components
 export { HomePage } from "./home";
@@ -26,7 +29,13 @@ export {
   LearningPathDetailPage,
   CheckpointPage,
   TaskDetailPage,
+  ResourceDetailPage,
+  ResourcesPage,
 } from "./learning-paths";
+export { ProgressPage } from "./progress";
+export { IdePage } from "./ide";
+export { AiMentorPage } from "./ai-mentor";
+export { AdminUsersPage, AwsDashboardPage } from "./admin";
 
 // Authorization feature
 export * from "./authorization";

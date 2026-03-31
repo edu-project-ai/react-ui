@@ -10,7 +10,7 @@ import { fetchUserProfile, setCurrentUser } from "@/features/authorization/store
 // --- Ваші утиліти ---
 import { isAuthenticated } from "@/lib/token-provider";
 import { isEmailVerified } from "@/lib/auth-utils";
-import { checkUserProfileExists } from "@/features/authorization/utils/profile-checker";
+import { checkUserProfileExists } from "@/features/authorization";
 import { userApi } from "@/features/authorization/api/userApi";
 
 // Routes that don't require authentication
@@ -200,6 +200,14 @@ const AuthRedirector: FC<AuthRedirectorProps> = ({ children }) => {
           />
         );
       }
+      return (
+        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background to-primary/5">
+          <div className="text-center">
+            <Spinner size="lg" className="mx-auto mb-4" />
+            <p className="text-muted-foreground">Checking profile...</p>
+          </div>
+        </div>
+      );
     }
   }
 

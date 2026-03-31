@@ -1,4 +1,6 @@
 /** @type {import('tailwindcss').Config} */
+const typography = require('@tailwindcss/typography');
+
 module.exports = {
   darkMode: ["class"],
   content: [
@@ -83,5 +85,5 @@ module.exports = {
       },
     },
   },
-  plugins: [],
+  plugins: [typography],
 };

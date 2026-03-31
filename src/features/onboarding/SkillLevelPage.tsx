@@ -144,7 +144,7 @@ export const SkillLevelPage = () => {
             Skip
           </Button>
           <Button
-            variant="primary"
+            variant="default"
             onClick={handleNext}
             disabled={!selectedLevel}
             className="flex-1"

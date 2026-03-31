@@ -1,4 +1,5 @@
 import { createSlice, type PayloadAction } from "@reduxjs/toolkit";
+import type { NotificationPayload } from "../types";
 
 export interface NotificationItem {
   id: string;
@@ -7,7 +8,7 @@ export interface NotificationItem {
   message: string;
   timestamp: string;
   read: boolean;
-  data?: any;
+  data?: NotificationPayload;
 }
 
 interface NotificationsState {

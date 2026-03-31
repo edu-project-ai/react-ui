@@ -16,14 +16,15 @@ export const CallbackPage: React.FC = () => {
   const dispatch = useAppDispatch();
   const [error, setError] = useState<string | null>(null);
   const isProcessing = useRef(false);
+  const hasProcessed = useRef(false); // Prevents re-processing after successful navigation
 
   /**
    * Centralized auth processing function
    * Handles both Hub event and immediate check cases
    */
   const processAuthCallback = useCallback(async () => {
-    // Prevent duplicate processing
-    if (isProcessing.current) return;
+    // Prevent duplicate processing and re-processing after success
+    if (isProcessing.current || hasProcessed.current) return;
     isProcessing.current = true;
 
     try {
@@ -36,25 +37,28 @@ export const CallbackPage: React.FC = () => {
         throw new Error("Failed to get ID token");
       }
 
-      const user = createUserFromCognito(cognitoUser, userAttributes);
+      const user = createUserFromCognito(cognitoUser, userAttributes, session);
       dispatch(setCurrentUser(user));
 
       // Check if profile exists using RTK Query
       const profileResult = await checkUserProfileExists();
 
       if (profileResult.status === "found") {
+        hasProcessed.current = true;
         navigate("/dashboard", { replace: true });
       } else if (profileResult.status === "not_found") {
         // New user - redirect to onboarding
+        hasProcessed.current = true;
         navigate("/onboarding", { replace: true });
       } else {
         // Error checking profile - let user retry
         setError("Failed to verify profile. Please try again.");
-        isProcessing.current = false;
       }
     } catch (err) {
       console.error("Auth callback error:", err);
       setError("Failed to complete sign in. Please try again.");
+    } finally {
+      // Always reset processing flag to allow retry
       isProcessing.current = false;
     }
   }, [dispatch, navigate]);
@@ -91,6 +95,7 @@ export const CallbackPage: React.FC = () => {
   const handleRetry = () => {
     setError(null);
     isProcessing.current = false;
+    hasProcessed.current = false; // Reset to allow retry
     processAuthCallback();
   };
 

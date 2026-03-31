@@ -4,6 +4,8 @@ export { LearningPathsPage } from "./components/LearningPathsPage";
 export { LearningPathDetailPage } from "./components/LearningPathDetailPage";
 export { CheckpointPage } from "./components/CheckpointPage";
 export { TaskDetailPage } from "./components/TaskDetailPage";
+export { ResourceDetailPage } from "./components/ResourceDetailPage";
+export { ResourcesPage } from "./components/ResourcesPage";
 export { ProgressBar } from "./components/ProgressBar";
 export { LearningPathCard } from "./components/LearningPathCard";
 export { CheckpointTimelineItem } from "./components/CheckpointTimelineItem";

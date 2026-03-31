@@ -3,14 +3,7 @@ import { Link } from "react-router-dom";
 import type { LearningPath } from "../services/type";
 import { ProgressBar } from "./ProgressBar";
 
-/**
- * Helper to extract status from planJson
- */
-const getPlanStatus = (planJson?: Record<string, unknown> | null): string | null => {
-  if (!planJson) return null;
-  const status = planJson.Status ?? planJson.status;
-  return typeof status === "string" ? status : null;
-};
+
 
 const LightningIcon = memo(() => (
   <svg
@@ -176,8 +169,7 @@ interface LearningPathCardProps {
 export const LearningPathCard = memo(({ path }: LearningPathCardProps) => {
   const isCompleted = path.progress && path.progress.percentage >= 100;
   const progressPercentage = path.progress?.percentage ?? 0;
-  const planStatus = getPlanStatus(path.planJson);
-  const isGenerating = planStatus === "generating";
+  const isGenerating = ["pending", "processing", "generating"].includes(path.generationStatus || "");
 
   // Determine card styling based on state
   const getCardClassName = () => {
@@ -198,7 +190,7 @@ export const LearningPathCard = memo(({ path }: LearningPathCardProps) => {
     <div className="p-6 flex-1 flex flex-col">
       <CardHeader
         title={path.title}
-        description={path.description}
+        description={path.description || ""}
         isActive={path.isActive}
         isGenerating={isGenerating}
       />
@@ -206,7 +198,7 @@ export const LearningPathCard = memo(({ path }: LearningPathCardProps) => {
       <div className="mt-auto pt-4 border-t border-border">
         <CardMetadata
           difficultyLevel={path.difficultyLevel}
-          estimatedDays={path.estimatedDays}
+          estimatedDays={path.estimatedDays ?? undefined}
         />
 
         {path.progress && !isGenerating && (

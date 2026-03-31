@@ -7,4 +7,4 @@ export { RecentActivity } from "./components/RecentActivity";
 export { EmptyState } from "./components/EmptyState";
 export { ActivityCalendar } from "./components/ActivityCalendar";
 export { StatCard } from "./components/StatCard";
-export { DashboardPage } from "./DashboardPage";
+export { DashboardPage } from "./pages/DashboardPage";

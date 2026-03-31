@@ -33,10 +33,10 @@ export default function CTABanner({
         </p>
         <Link to={buttonLink}>
           <Button
-            variant={gradient ? "outline" : "primary"}
+            variant={gradient ? "outline" : "default"}
             className={
               gradient
-                ? "bg-white text-primary hover:bg-white/90 border-white"
+                ? "bg-white text-primary hover:bg-white/90 border-white dark:bg-white dark:text-primary dark:hover:bg-white/90 dark:border-white"
                 : ""
             }
           >

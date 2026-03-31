@@ -1,6 +1,7 @@
 import { useForm } from "react-hook-form";
 import { Link, useNavigate } from "react-router";
 import { useState, useEffect } from "react";
+import { Form } from "@/components/ui/form";
 import FormInput from "@/components/form/FormInput";
 import FormPasswordInput from "@/components/form/FormPasswordInput";
 import { Button } from "@/components/ui/button";
@@ -9,7 +10,7 @@ import GoogleButton from "@/components/shared/GoogleButton/GoogleButton";
 import FormDivider from "@/components/shared/FormDivider/FormDivider";
 import { signInWithRedirect } from "aws-amplify/auth";
 import { useUser } from "@/features/authorization";
-import { checkUserProfileExists } from "@/features/authorization/utils/profile-checker";
+import { checkUserProfileExists } from "@/features/authorization";
 import { toast } from "react-hot-toast";
 
 interface RegisterFormData {
@@ -29,7 +30,7 @@ export default function RegisterForm() {
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [passwordStrength, setPasswordStrength] = useState(0);
 
-  const { control, handleSubmit, watch } = useForm<RegisterFormData>({
+  const methods = useForm<RegisterFormData>({
     defaultValues: {
       firstName: "",
       lastName: "",
@@ -40,6 +41,7 @@ export default function RegisterForm() {
       agreeToTerms: false,
     },
   });
+  const { control, handleSubmit, watch } = methods;
 
   const password = watch("password");
 
@@ -92,7 +94,7 @@ export default function RegisterForm() {
           navigate("/dashboard");
         } else if (profileResult.status === "not_found") {
           toast.success("Account created! Complete your profile...");
-          navigate("/onboarding/profile-photo");
+          navigate("/onboarding");
         } else {
           toast.error("Failed to verify profile. Please try again.");
         }
@@ -113,7 +115,7 @@ export default function RegisterForm() {
         if (profileResult.status === "found") {
           navigate("/dashboard");
         } else if (profileResult.status === "not_found") {
-          navigate("/onboarding/profile-photo");
+          navigate("/onboarding");
         } else {
           toast.error("Failed to verify profile. Please try again.");
         }
@@ -123,7 +125,7 @@ export default function RegisterForm() {
         if (profileResult.status === "found") {
           navigate("/dashboard");
         } else if (profileResult.status === "not_found") {
-          navigate("/onboarding/profile-photo");
+          navigate("/onboarding");
         } else {
           toast.error("Failed to verify profile. Please try again.");
         }
@@ -173,7 +175,8 @@ export default function RegisterForm() {
       <FormDivider text="Or sign up with email" />
 
       {/* Registration Form */}
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+      <Form {...methods}>
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
         {/* Name Fields */}
         <div className="grid grid-cols-2 gap-4">
           <FormInput
@@ -325,7 +328,7 @@ export default function RegisterForm() {
 
         <Button
           type="submit"
-          variant="primary"
+          variant="default"
           disabled={isLoading}
           className="w-full"
         >
@@ -346,6 +349,7 @@ export default function RegisterForm() {
           </Link>
         </div>
       </form>
-    </div>
+      </Form>
+      </div>
   );
 }

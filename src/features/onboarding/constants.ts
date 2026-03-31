@@ -97,7 +97,14 @@ export const TECHNOLOGY_TO_BACKEND_MAP: Record<Technology, string> = {
   Kubernetes: "kubernetes",
 };
 
-// Category grouping for better UX
+export const BACKEND_TO_TECHNOLOGY_MAP: Record<string, Technology> =
+  Object.fromEntries(
+    Object.entries(TECHNOLOGY_TO_BACKEND_MAP).map(([key, slug]) => [
+      slug,
+      key as Technology,
+    ])
+  );
+
 export const TECH_CATEGORIES = {
   "Programming Languages": [
     "CSharp",
@@ -130,3 +137,18 @@ export const TECH_CATEGORIES = {
     "Kubernetes",
   ],
 } as const;
+
+export const TECHNOLOGY_OPTIONS = TECHNOLOGIES.map((tech) => ({
+  label: TECHNOLOGY_LABELS[tech],
+  value: tech,
+}));
+
+export const TECHNOLOGY_OPTIONS_GROUPED = Object.entries(TECH_CATEGORIES).map(
+  ([heading, techs]) => ({
+    heading,
+    options: techs.map((tech) => ({
+      label: TECHNOLOGY_LABELS[tech as Technology],
+      value: tech,
+    })),
+  })
+);

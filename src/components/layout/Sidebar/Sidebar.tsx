@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { useAppSelector } from "@/hooks/useReduxHooks";
 import { useUser } from "@/features/authorization";
+import logo from "@/assets/Roadly-logo.png";
 
 interface SidebarProps {
   isOpen: boolean;
@@ -89,6 +90,25 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </svg>
       ),
     },
+    {
+      href: "/resources",
+      label: "Resources",
+      icon: (
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="20"
+          height="20"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <path d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path>
+        </svg>
+      ),
+    },
   ];
 
   const handleSignOut = async () => {
@@ -117,7 +137,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const bottomNavItems = [
     {
       href: "/ai-mentor",
-      label: "AI-ментор",
+      label: "AI Mentor",
       badge: "NEW",
       icon: (
         <svg
@@ -137,26 +157,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </svg>
       ),
     },
-    {
-      href: "/settings",
-      label: "Settings",
-      icon: (
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          width="20"
-          height="20"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        >
-          <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path>
-          <circle cx="12" cy="12" r="3"></circle>
-        </svg>
-      ),
-    },
   ];
 
   return (
@@ -172,21 +172,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
       {/* Header */}
       <div className="h-16 flex items-center px-4 border-b border-border justify-between">
         <div className="flex items-center gap-3 overflow-hidden">
-          <div className="size-8 min-w-8 rounded-md bg-gradient-to-br from-primary to-accent flex items-center justify-center">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="18"
-              height="18"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              className="text-white"
-            >
-              <path d="M9 12l2 2 4-4"></path>
-            </svg>
+          <div className="size-8 min-w-8 rounded-md flex items-center justify-center">
+            <img src={logo} alt="Roadly" className="w-6 h-6" />
           </div>
           <span
             className={cn(
@@ -194,7 +181,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
               isCollapsed ? "opacity-0 w-0" : "opacity-100"
             )}
           >
-            LearnPath AI
+            Roadly
           </span>
         </div>
         <button
@@ -290,6 +277,65 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </Link>
           );
         })}
+
+        {/* Admin Section */}
+        {user?.role?.title === "Admin" && (
+          <>
+            <div className="my-4 border-t border-border/50" />
+            {[
+              {
+                href: "/admin/users",
+                label: "User Management",
+                icon: (
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+                    <circle cx="9" cy="7" r="4" />
+                    <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+                    <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                  </svg>
+                ),
+              },
+              {
+                href: "/admin/aws",
+                label: "AWS Dashboard",
+                icon: (
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <ellipse cx="12" cy="5" rx="9" ry="3" />
+                    <path d="M3 5V19A9 3 0 0 0 21 19V5" />
+                    <path d="M3 12A9 3 0 0 0 21 12" />
+                  </svg>
+                ),
+              },
+            ].map((item) => {
+              const isActive = location.pathname === item.href;
+              return (
+                <Link
+                  key={item.href}
+                  to={item.href}
+                  className={cn(
+                    "flex items-center gap-3 px-3 py-2.5 rounded-md transition-all duration-200 group relative",
+                    isActive
+                      ? "bg-primary/10 text-primary font-medium"
+                      : "text-muted-foreground hover:bg-accent/10 hover:text-foreground"
+                  )}
+                  title={isCollapsed ? item.label : undefined}
+                >
+                  <span className={cn("min-w-5", isActive ? "text-primary" : "")}>
+                    {item.icon}
+                  </span>
+                  <span
+                    className={cn(
+                      "whitespace-nowrap transition-all duration-300 overflow-hidden",
+                      isCollapsed ? "w-0 opacity-0" : "w-auto opacity-100"
+                    )}
+                  >
+                    {item.label}
+                  </span>
+                </Link>
+              );
+            })}
+          </>
+        )}
       </nav>
 
       {/* User Profile */}
@@ -325,8 +371,30 @@ export const Sidebar: React.FC<SidebarProps> = ({
               {user?.programmingLevel || "Learner"}
             </p>
           </div>
+          {!isCollapsed && (
+            <Link
+              to="/settings"
+              className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent/10 transition-colors"
+              title="Settings"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path>
+                <circle cx="12" cy="12" r="3"></circle>
+              </svg>
+            </Link>
+          )}
         </div>
-        
+
         {!isCollapsed && (
           <button
             onClick={handleSignOut}
@@ -347,7 +415,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
               <polyline points="16 17 21 12 16 7" />
               <line x1="21" x2="9" y1="12" y2="12" />
             </svg>
-            Вийти
+            Sign out
           </button>
         )}
       </div>
