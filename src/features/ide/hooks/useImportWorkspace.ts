@@ -1,4 +1,5 @@
 import { useCallback, useState } from "react";
+import { getAccessToken } from "../../../lib/token-provider";
 
 const proxyBase =
   (import.meta.env.VITE_WS_PROXY_URL as string | undefined)
@@ -18,7 +19,9 @@ export function useImportWorkspace(containerId: string | null) {
         form.append("file", file);
 
         const url = `${proxyBase}/fs/import?id=${encodeURIComponent(containerId)}`;
-        const response = await fetch(url, { method: "POST", body: form });
+        const token = await getAccessToken();
+        const headers: HeadersInit = token ? { Authorization: `Bearer ${token}` } : {};
+        const response = await fetch(url, { method: "POST", body: form, headers });
 
         if (!response.ok) {
           throw new Error(`Import failed: ${response.statusText}`);

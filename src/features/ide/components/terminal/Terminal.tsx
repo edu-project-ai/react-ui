@@ -13,6 +13,8 @@ interface TerminalProps {
   onReady?: () => void;
   /** Fires once the container has been provisioned, with the containerId */
   onSessionCreated?: (containerId: string, mappedPorts?: Record<string, number>) => void;
+  /** Callback to expose the WebSocket ref for external command injection */
+  onSocketRef?: (ref: React.RefObject<WebSocket | null>) => void;
 }
 
 const BootOverlay: React.FC = () => (
@@ -75,12 +77,18 @@ export const Terminal: React.FC<TerminalProps> = ({
   style,
   onReady,
   onSessionCreated,
+  onSocketRef,
 }) => {
-  const { terminalRef, status, error, retry } = useDockerTerminal({
+  const { terminalRef, status, error, retry, socketRef } = useDockerTerminal({
     taskId,
     onReady,
     onSessionCreated,
   });
+
+  // Expose socket ref to parent
+  React.useEffect(() => {
+    onSocketRef?.(socketRef);
+  }, [socketRef, onSocketRef]);
 
   const isVisible: boolean = status === 'connected';
 

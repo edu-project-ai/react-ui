@@ -1,4 +1,5 @@
 import { useCallback, useState } from "react";
+import { getAccessToken } from "../../../lib/token-provider";
 
 const proxyBase =
   (import.meta.env.VITE_WS_PROXY_URL as string | undefined)
@@ -14,7 +15,9 @@ export function useExportWorkspace(containerId: string | null) {
     setIsExporting(true);
     try {
       const url = `${proxyBase}/fs/export?id=${encodeURIComponent(containerId)}`;
-      const response = await fetch(url);
+      const token = await getAccessToken();
+      const headers: HeadersInit = token ? { Authorization: `Bearer ${token}` } : {};
+      const response = await fetch(url, { headers });
 
       if (!response.ok) {
         throw new Error(`Export failed: ${response.statusText}`);

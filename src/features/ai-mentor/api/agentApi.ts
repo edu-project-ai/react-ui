@@ -6,6 +6,7 @@ export interface AgentChatRequest {
   taskInstruction: string;
   currentCode?: string | null;
   language?: string | null;
+  taskId?: string | null;
 }
 
 export interface AgentChatResponse {

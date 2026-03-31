@@ -1,5 +1,6 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 import type { FileNode, SearchResult } from "../types";
+import { getAccessToken } from "../../../lib/token-provider";
 
 export const ideProxyApi = createApi({
   reducerPath: "ideProxy",
@@ -8,6 +9,11 @@ export const ideProxyApi = createApi({
       import.meta.env.VITE_WS_PROXY_URL
         ?.replace("ws://", "http://")
         .replace("wss://", "https://") ?? "http://localhost:8080",
+    prepareHeaders: async (headers) => {
+      const token = await getAccessToken();
+      if (token) headers.set("Authorization", `Bearer ${token}`);
+      return headers;
+    },
   }),
   endpoints: (builder) => ({
     fetchFileTree: builder.query<FileNode[], string>({
