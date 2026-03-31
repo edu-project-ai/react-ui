@@ -10,6 +10,17 @@ export interface StartSessionResponse {
 }
 
 /**
+ * Response from GET /sessions/status
+ */
+export interface SessionStatusResponse {
+  hasActiveSession: boolean;
+  containerId: string | null;
+  createdAt: string | null;
+  lastActivity: string | null;
+  isRunning: boolean;
+}
+
+/**
  * Request to start a new interactive session
  */
 export interface StartSessionRequest {
@@ -78,7 +89,16 @@ export const codeExecutionApi = apiSlice.injectEndpoints({
         method: 'DELETE',
       }),
     }),
+
+    getSessionStatus: builder.query<SessionStatusResponse, void>({
+      query: () => '/api/code-execution/sessions/status',
+    }),
   }),
 });
 
-export const { useStartSessionMutation, useStartTaskSessionMutation, useDeleteSessionMutation } = codeExecutionApi;
+export const {
+  useStartSessionMutation,
+  useStartTaskSessionMutation,
+  useDeleteSessionMutation,
+  useLazyGetSessionStatusQuery,
+} = codeExecutionApi;

@@ -33,6 +33,21 @@ export async function getAuthToken(): Promise<string | undefined> {
 }
 
 /**
+ * Get the Cognito access token (token_use=access) for services that require it.
+ * Use this for the docker-pty-proxy which validates token_use claim.
+ *
+ * @returns JWT access token string or undefined if not authenticated
+ */
+export async function getAccessToken(): Promise<string | undefined> {
+  try {
+    const session = await fetchAuthSession();
+    return session.tokens?.accessToken?.toString();
+  } catch {
+    return undefined;
+  }
+}
+
+/**
  * Check if user has valid authentication session
  *
  * @returns true if authenticated, false otherwise

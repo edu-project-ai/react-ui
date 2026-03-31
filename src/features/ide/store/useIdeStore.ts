@@ -9,6 +9,9 @@ interface IdeState {
   sidebarVisible: boolean;
   activeSidebarPanel: 'explorer' | 'search';
   browserVisible: boolean;
+  blipPanelVisible: boolean;
+  blipMessages: { role: 'user' | 'assistant'; content: string }[];
+  blipLoading: boolean;
   savedFileContents: Record<string, string>;
 
   setContainerId: (id: string | null) => void;
@@ -23,6 +26,10 @@ interface IdeState {
   toggleSidebar: () => void;
   setActiveSidebarPanel: (panel: 'explorer' | 'search') => void;
   toggleBrowser: () => void;
+  toggleBlipPanel: () => void;
+  addBlipMessage: (msg: { role: 'user' | 'assistant'; content: string }) => void;
+  setBlipLoading: (loading: boolean) => void;
+  clearBlipMessages: () => void;
   reset: () => void;
 }
 
@@ -34,6 +41,9 @@ const initialState = {
   sidebarVisible: true,
   activeSidebarPanel: 'explorer' as const,
   browserVisible: false,
+  blipPanelVisible: false,
+  blipMessages: [] as { role: 'user' | 'assistant'; content: string }[],
+  blipLoading: false,
   savedFileContents: {} as Record<string, string>,
 };
 
@@ -116,6 +126,16 @@ export const useIdeStore = create<IdeState>((set, get) => ({
 
   toggleBrowser: () =>
     set((state) => ({ browserVisible: !state.browserVisible })),
+
+  toggleBlipPanel: () =>
+    set((state) => ({ blipPanelVisible: !state.blipPanelVisible })),
+
+  addBlipMessage: (msg) =>
+    set((state) => ({ blipMessages: [...state.blipMessages, msg] })),
+
+  setBlipLoading: (loading) => set({ blipLoading: loading }),
+
+  clearBlipMessages: () => set({ blipMessages: [] }),
 
   reset: () => set(initialState),
 }));

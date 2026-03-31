@@ -1,6 +1,7 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { RefreshCw, ExternalLink, Globe } from 'lucide-react';
 import { useIdeStore } from '../store/useIdeStore';
+import { getAccessToken } from '../../../lib/token-provider';
 
 export function BrowserPreview() {
   const containerId = useIdeStore((s) => s.containerId);
@@ -9,6 +10,11 @@ export function BrowserPreview() {
   const [addressInput, setAddressInput] = useState('8000');
   const [currentRoute, setCurrentRoute] = useState({ port: '8000', path: '/' });
   const [refreshKey, setRefreshKey] = useState(0);
+  const [proxyToken, setProxyToken] = useState('');  
+
+  useEffect(() => {
+    getAccessToken().then((t) => setProxyToken(t ?? ''));
+  }, []);
 
   // Parse the user input to extract port and path
   const parseAddress = (input: string) => {
@@ -36,11 +42,12 @@ export function BrowserPreview() {
       const parsed = new URL(httpUrl);
       const cleanPath = currentRoute.path.startsWith('/') ? currentRoute.path : `/${currentRoute.path}`;
       // Path-based proxy: /proxy/{containerId}/{port}{path}
-      return `${parsed.protocol}//${parsed.host}/proxy/${containerId}/${currentRoute.port}${cleanPath}`;
+      const base = `${parsed.protocol}//${parsed.host}/proxy/${containerId}/${currentRoute.port}${cleanPath}`;
+      return proxyToken ? `${base}?token=${encodeURIComponent(proxyToken)}` : base;
     } catch {
       return '';
     }
-  }, [containerId, currentRoute]);
+  }, [containerId, currentRoute, proxyToken]);
 
   // Determine local mapped URL for external browser fallback
   const mappedExternalPort = mappedPorts?.[currentRoute.port];

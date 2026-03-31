@@ -1,8 +1,10 @@
-import { memo, useState, useMemo, type ReactNode } from "react";
+import { memo, useState, useMemo, useEffect, type ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { useGetAllResourcesQuery } from "../api/learningPathsApi";
 import { Spinner } from "@/components/ui/spinner";
 import type { ResourceItem } from "../services/type";
+
+const PAGE_SIZE = 12;
 
 const TYPE_ICONS: Record<string, ReactNode> = {
   article: (
@@ -109,6 +111,12 @@ export const ResourcesPage = () => {
   const { data: resources, isLoading, error } = useGetAllResourcesQuery();
   const [search, setSearch] = useState("");
   const [activeType, setActiveType] = useState<string>("all");
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+
+  // Reset pagination when filters change
+  useEffect(() => {
+    setVisibleCount(PAGE_SIZE);
+  }, [search, activeType]);
 
   const types = useMemo(() => {
     if (!resources) return [];
@@ -124,6 +132,9 @@ export const ResourcesPage = () => {
       return matchType && matchSearch;
     });
   }, [resources, activeType, search]);
+
+  const paginated = useMemo(() => filtered.slice(0, visibleCount), [filtered, visibleCount]);
+  const hasMore = visibleCount < filtered.length;
 
   if (isLoading) {
     return (
@@ -206,10 +217,25 @@ export const ResourcesPage = () => {
 
       {/* Grid */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-        {filtered.length > 0
-          ? filtered.map((r) => <ResourceCard key={r.id} resource={r} />)
+        {paginated.length > 0
+          ? paginated.map((r) => <ResourceCard key={r.id} resource={r} />)
           : <EmptyState />}
       </div>
+
+      {/* Load More */}
+      {hasMore && (
+        <div className="mt-8 flex flex-col items-center gap-2">
+          <p className="text-xs text-muted-foreground">
+            Showing {paginated.length} of {filtered.length}
+          </p>
+          <button
+            onClick={() => setVisibleCount((c) => c + PAGE_SIZE)}
+            className="px-6 py-2 text-sm font-medium rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+          >
+            Load More
+          </button>
+        </div>
+      )}
     </div>
   );
 };

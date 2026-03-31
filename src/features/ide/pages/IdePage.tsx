@@ -1,4 +1,4 @@
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Allotment } from 'allotment';
 import { ArrowLeft, Loader2 } from 'lucide-react';
@@ -6,11 +6,16 @@ import { ArrowLeft, Loader2 } from 'lucide-react';
 import { useGetCodingTaskQuery } from '@/features/learning-paths';
 import { useIdeStore } from '../store/useIdeStore';
 import { useDeleteSessionMutation } from '../api/codeExecutionApi';
+import { clearSession } from '../hooks/useDockerTerminal';
+import { useRunTests } from '../hooks/useRunTests';
 import { ActivityBar } from '../components/ActivityBar';
 import { Sidebar } from '../components/Sidebar';
 import { EditorArea } from '../components/EditorArea';
 import { Terminal } from '../components/terminal/Terminal';
 import { BrowserPreview } from '../components/BrowserPreview';
+import { IdeToolbar } from '../components/IdeToolbar';
+import { BlipHelperPanel } from '../components/AiReviewPanel';
+import { RunTestsDialog } from '../components/RunTestsDialog';
 import '../styles/ide.css';
 
 export function IdePage() {
@@ -19,6 +24,7 @@ export function IdePage() {
     itemId: string;
   }>();
   const navigate = useNavigate();
+  const isExplicitLeaveRef = useRef(false);
 
   // ── Data fetching ──
   const {
@@ -33,31 +39,45 @@ export function IdePage() {
   // ── Zustand store ──
   const sidebarVisible = useIdeStore((s) => s.sidebarVisible);
   const browserVisible = useIdeStore((s) => s.browserVisible);
+  const blipPanelVisible = useIdeStore((s) => s.blipPanelVisible);
   const setSessionInfo = useIdeStore((s) => s.setSessionInfo);
-  const containerId = useIdeStore((s) => s.containerId);
   const reset = useIdeStore((s) => s.reset);
   const [deleteSession] = useDeleteSessionMutation();
 
-  // Cleanup container session on unmount and beforeunload
-  useEffect(() => {
-    const handleBeforeUnload = () => {
-      if (containerId) {
-        navigator.sendBeacon(
-          `${import.meta.env.VITE_API_BASE_URL}/api/code-execution/sessions`,
-          JSON.stringify({ _method: 'DELETE' }),
-        );
-      }
-    };
-    window.addEventListener('beforeunload', handleBeforeUnload);
+  // ── Run Tests hook ──
+  const { setSocket, runTests } = useRunTests();
+  const [runTestsDialogOpen, setRunTestsDialogOpen] = useState(false);
 
+  const handleSocketRef = useCallback(
+    (ref: React.RefObject<WebSocket | null>) => {
+      setSocket(ref);
+    },
+    [setSocket],
+  );
+
+  const handleRunTests = useCallback(() => {
+    setRunTestsDialogOpen(true);
+  }, []);
+
+  const handleRunTestsExec = useCallback(() => {
+    runTests(codingTask?.language ?? undefined);
+  }, [runTests, codingTask?.language]);
+
+  // On unmount: only delete session + clear localStorage when user navigated away explicitly.
+  // Refresh / tab close keeps the session alive for reconnection (Redis TTL handles expiry).
+  useEffect(() => {
     return () => {
-      window.removeEventListener('beforeunload', handleBeforeUnload);
-      if (containerId) {
-        deleteSession();
+      if (isExplicitLeaveRef.current) {
+        const id = useIdeStore.getState().containerId;
+        if (id) {
+          deleteSession();
+        }
+        clearSession();
       }
       reset();
     };
-  }, [containerId, deleteSession, reset]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // ── Prevent browser Ctrl+S ──
   useEffect(() => {
@@ -80,6 +100,7 @@ export function IdePage() {
 
   // ── Back navigation ──
   const handleGoBack = useCallback(() => {
+    isExplicitLeaveRef.current = true;
     navigate(-1);
   }, [navigate]);
 
@@ -133,6 +154,10 @@ export function IdePage() {
             ? codingTask.description.slice(0, 60)
             : 'IDE Workspace'}
         </span>
+        <IdeToolbar
+          onRunTests={handleRunTests}
+          language={codingTask.language ?? undefined}
+        />
       </div>
 
       {/* ── Main IDE layout ── */}
@@ -169,6 +194,7 @@ export function IdePage() {
                         <Terminal
                           taskId={codingTask.id}
                           onSessionCreated={handleSessionCreated}
+                          onSocketRef={handleSocketRef}
                         />
                       </div>
                     </Allotment.Pane>
@@ -183,11 +209,34 @@ export function IdePage() {
                 >
                   <BrowserPreview />
                 </Allotment.Pane>
+
+                {/* Blip Helper Panel (Optional split right) */}
+                <Allotment.Pane
+                  minSize={280}
+                  preferredSize={350}
+                  visible={blipPanelVisible}
+                >
+                  <BlipHelperPanel
+                    taskDescription={codingTask.description ?? ''}
+                    language={codingTask.language ?? ''}
+                    taskId={codingTask.id}
+                  />
+                </Allotment.Pane>
               </Allotment>
             </Allotment.Pane>
           </Allotment>
         </div>
       </div>
+
+      {/* ── Run Tests Dialog ── */}
+      <RunTestsDialog
+        open={runTestsDialogOpen}
+        onClose={() => setRunTestsDialogOpen(false)}
+        taskDescription={codingTask.description ?? ''}
+        language={codingTask.language ?? ''}
+        taskId={codingTask.id}
+        onRunTests={handleRunTestsExec}
+      />
     </div>
   );
 }
