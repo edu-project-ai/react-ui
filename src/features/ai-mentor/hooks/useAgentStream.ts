@@ -1,5 +1,9 @@
 import { useCallback, useRef } from "react";
 import { startAgentStream } from "../api/agentStreamApi";
+import {
+  useLazyGetConversationHistoryQuery,
+  useSaveConversationTurnMutation,
+} from "../api/conversationsApi";
 import { useChatStore } from "../store/useChatStore";
 import type { ToolCallEvent } from "../types/sseEvents";
 
@@ -15,6 +19,9 @@ export function useAgentStream() {
   const partialText = useChatStore((s) => s.partialText);
   const toolCalls = useChatStore((s) => s.toolCalls) as ToolCallEvent[];
 
+  const [fetchHistory] = useLazyGetConversationHistoryQuery();
+  const [saveConversationTurn] = useSaveConversationTurnMutation();
+
   const startStream = useCallback(
     async (message: string, taskId?: string | null, taskType?: string) => {
       // Cancel any in-flight stream before starting a new one
@@ -25,12 +32,23 @@ export function useAgentStream() {
       clearStreamingState();
       setStreaming(true);
 
+      // Load conversation history for context (non-fatal if it fails)
+      let history: Array<{ role: string; content: string }> = [];
+      try {
+        const result = await fetchHistory({ taskId, limit: 20 });
+        if (result.data) {
+          history = result.data.map((m) => ({ role: m.role, content: m.content }));
+        }
+      } catch {
+        // history unavailable — proceed without context
+      }
+
       let accumulated = "";
       let handled = false;
 
       try {
         await startAgentStream(
-          { message, taskId, taskType: taskType ?? "general" },
+          { message, taskId, taskType: taskType ?? "general", history },
           {
             onToken({ text }) {
               accumulated += text;
@@ -46,6 +64,13 @@ export function useAgentStream() {
               handled = true;
               addMessage({ role: "assistant", content: event.reply });
               clearStreamingState();
+              // Persist turn to backend (fire-and-forget, non-fatal)
+              saveConversationTurn({
+                codingTaskId: taskId ?? null,
+                userMessage: message,
+                assistantReply: event.reply,
+                toolsUsed: event.tools_used ?? null,
+              }).catch(() => {});
             },
             onError(err) {
               handled = true;
@@ -68,7 +93,7 @@ export function useAgentStream() {
         }
       }
     },
-    [addMessage, setStreaming, setPartialText, appendToolCall, clearStreamingState],
+    [addMessage, setStreaming, setPartialText, appendToolCall, clearStreamingState, fetchHistory, saveConversationTurn],
   );
 
   const cancelStream = useCallback(() => {

@@ -17,6 +17,7 @@ export interface AgentStreamParams {
   taskId?: string | null;
   taskType?: string;
   correlationId?: string;
+  history?: Array<{ role: string; content: string }>;
 }
 
 export async function startAgentStream(
@@ -31,6 +32,7 @@ export async function startAgentStream(
     task_id: params.taskId ?? null,
     task_type: params.taskType ?? "general",
     correlation_id: params.correlationId ?? null,
+    history: params.history ?? null,
   });
 
   await fetchEventSource(`${PYTHON_API_URL}/api/agent/chat/stream`, {

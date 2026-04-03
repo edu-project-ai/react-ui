@@ -68,7 +68,7 @@ const baseQueryWithErrorHandling: BaseQueryFn<
 export const apiSlice = createApi({
   reducerPath: "api",
   baseQuery: baseQueryWithErrorHandling,
-  tagTypes: ["LearningPath", "User", "Statistics", "Role", "CognitoUser"],
+  tagTypes: ["LearningPath", "User", "Statistics", "Role", "CognitoUser", "Conversation"],
   endpoints: (builder) => ({
     getByPath: builder.query<unknown, string>({
       query: (path) => path,
