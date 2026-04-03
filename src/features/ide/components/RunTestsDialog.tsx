@@ -2,9 +2,8 @@ import { useState, useCallback } from 'react';
 import { X, Play, Sparkles, Loader2, FileCode, CheckCircle, AlertTriangle } from 'lucide-react';
 import Markdown from 'react-markdown';
 import { useIdeStore } from '../store/useIdeStore';
-import { useAgentChatMutation } from '@/features/ai-mentor/api/agentApi';
+import { startAgentStream } from '@/features/ai-mentor/api/agentStreamApi';
 import { useWriteFileMutation } from '../api/ideProxyApi';
-import * as monaco from 'monaco-editor';
 
 /** Language → test file path in container workspace */
 const TEST_FILE_PATHS: Record<string, string> = {
@@ -52,9 +51,7 @@ export function RunTestsDialog({
   onRunTests,
 }: RunTestsDialogProps) {
   const containerId = useIdeStore((s) => s.containerId);
-  const activeFilePath = useIdeStore((s) => s.activeFilePath);
 
-  const [agentChat] = useAgentChatMutation();
   const [writeFile] = useWriteFileMutation();
 
   // Manual generation state
@@ -82,13 +79,25 @@ export function RunTestsDialog({
     onClose();
   }, [onClose]);
 
-  /** Read current code from Monaco editor */
-  const readCurrentCode = useCallback((): string => {
-    if (!activeFilePath) return '';
-    const uri = monaco.Uri.parse(`file:///${activeFilePath}`);
-    const model = monaco.editor.getModel(uri);
-    return model ? model.getValue() : '';
-  }, [activeFilePath]);
+  /** Wrap startAgentStream in a Promise to allow sequential await usage */
+  const chatViaSSE = useCallback(async (message: string): Promise<string> => {
+    const controller = new AbortController();
+    return new Promise<string>((resolve, reject) => {
+      void startAgentStream(
+        { message, taskId: taskId ?? null, taskType: 'code_review' },
+        {
+          onToken() {},
+          onToolCall() {},
+          onToolResult() {},
+          onDone(event) { resolve(event.reply); },
+          onError(err) { reject(err); },
+        },
+        controller.signal,
+      ).catch((err: unknown) => {
+        reject(err instanceof Error ? err : new Error(String(err)));
+      });
+    });
+  }, [taskId]);
 
   /** Write test file to container */
   const writeTestFile = useCallback(
@@ -117,32 +126,24 @@ export function RunTestsDialog({
     setIsGenerating(true);
 
     try {
-      const currentCode = readCurrentCode();
+      const reply = await chatViaSSE(
+        'You are a Senior QA Test Engineer. Your task is to create comprehensive unit tests for the coding task below.\n\n' +
+        'First check if validation tests already exist in the database for this task (use fetch_validation_code tool).\n' +
+        'If tests exist, return them.\n' +
+        'If no tests exist, generate comprehensive unit tests based on the solution code and task description.\n' +
+        'Then save the generated tests to the database (use save_generated_tests tool).\n\n' +
+        'Return ONLY the test file content inside a single fenced code block.',
+      );
 
-      const result = await agentChat({
-        userMessage:
-          'You are a Senior QA Test Engineer. Your task is to create comprehensive unit tests for the coding task below.\n\n' +
-          'First check if validation tests already exist in the database for this task (use fetch_validation_code tool).\n' +
-          'If tests exist, return them.\n' +
-          'If no tests exist, generate comprehensive unit tests based on the solution code and task description.\n' +
-          'Then save the generated tests to the database (use save_generated_tests tool).\n\n' +
-          'Return ONLY the test file content inside a single fenced code block.',
-        taskType: 'code',
-        taskInstruction: taskDescription,
-        currentCode: currentCode || null,
-        language,
-        taskId: taskId ?? null,
-      }).unwrap();
-
-      const code = extractCodeBlock(result.reply);
+      const code = extractCodeBlock(reply);
       setGeneratedCode(code);
-      setRawReply(result.reply);
+      setRawReply(reply);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to generate tests. Please try again.');
     } finally {
       setIsGenerating(false);
     }
-  }, [readCurrentCode, agentChat, taskDescription, language, taskId]);
+  }, [chatViaSSE]);
 
   // ── Manual "Create File & Run Tests" ──
   const handleCreateAndRun = useCallback(async () => {
@@ -179,51 +180,35 @@ export function RunTestsDialog({
       setAutoPhase('checking');
       appendLog('Checking for existing unit tests...');
 
-      const currentCode = readCurrentCode();
-
-      const checkResult = await agentChat({
-        userMessage:
-          'Check if validation tests already exist in the database for this coding task.\n' +
-          'Use the fetch_validation_code tool with the task_id.\n' +
-          'If tests exist, return them inside a fenced code block.\n' +
-          'If no tests exist, respond with exactly: NO_TESTS_FOUND',
-        taskType: 'code',
-        taskInstruction: taskDescription,
-        currentCode: currentCode || null,
-        language,
-        taskId: taskId ?? null,
-      }).unwrap();
+      const checkReply = await chatViaSSE(
+        'Check if validation tests already exist in the database for this coding task.\n' +
+        'Use the fetch_validation_code tool with the task_id.\n' +
+        'If tests exist, return them inside a fenced code block.\n' +
+        'If no tests exist, respond with exactly: NO_TESTS_FOUND',
+      );
 
       let testCode: string;
-      const hasTests = !checkResult.reply.includes('NO_TESTS_FOUND') &&
-        !checkResult.reply.toLowerCase().includes('no validation') &&
-        !checkResult.reply.toLowerCase().includes('no tests found') &&
-        !checkResult.reply.toLowerCase().includes('need to be generated') &&
-        checkResult.reply.includes('```');
+      const hasTests = !checkReply.includes('NO_TESTS_FOUND') &&
+        !checkReply.toLowerCase().includes('no validation') &&
+        !checkReply.toLowerCase().includes('no tests found') &&
+        !checkReply.toLowerCase().includes('need to be generated') &&
+        checkReply.includes('```');
 
       if (hasTests) {
-        testCode = extractCodeBlock(checkResult.reply);
+        testCode = extractCodeBlock(checkReply);
         appendLog('Found existing unit tests in database.');
       } else {
         // Phase 2: Generate tests
         setAutoPhase('generating');
         appendLog('No existing tests found. Generating unit tests...');
 
-        const genResult = await agentChat({
-          userMessage:
-            'You are a Senior QA Test Engineer. Generate comprehensive unit tests for this coding task.\n' +
-            'Use the solution code from the database as reference to create thorough tests.\n' +
-            'Cover edge cases, boundary conditions, and main functionality.\n' +
-            'After generating, save the tests to the database using save_generated_tests tool.\n\n' +
-            'Return ONLY the test file content inside a single fenced code block.',
-          taskType: 'code',
-          taskInstruction: taskDescription,
-          currentCode: currentCode || null,
-          language,
-          taskId: taskId ?? null,
-        }).unwrap();
-
-        testCode = extractCodeBlock(genResult.reply);
+        testCode = extractCodeBlock(await chatViaSSE(
+          'You are a Senior QA Test Engineer. Generate comprehensive unit tests for this coding task.\n' +
+          'Use the solution code from the database as reference to create thorough tests.\n' +
+          'Cover edge cases, boundary conditions, and main functionality.\n' +
+          'After generating, save the tests to the database using save_generated_tests tool.\n\n' +
+          'Return ONLY the test file content inside a single fenced code block.',
+        ));
         appendLog('Unit tests generated and saved to database.');
       }
 
@@ -272,10 +257,7 @@ export function RunTestsDialog({
       setError(err instanceof Error ? err.message : 'Failed to run tests. Please try again.');
       appendLog('Error: ' + (err instanceof Error ? err.message : 'Unknown error'));
     }
-  }, [
-    containerId, readCurrentCode, agentChat, taskDescription, language,
-    taskId, writeFile, writeTestFile, onRunTests, handleClose, appendLog,
-  ]);
+  }, [containerId, chatViaSSE, writeFile, writeTestFile, onRunTests, handleClose, appendLog]);
 
   if (!open) return null;
 

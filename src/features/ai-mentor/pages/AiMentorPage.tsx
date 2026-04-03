@@ -1,23 +1,14 @@
 import React, { memo, useCallback, useEffect, useRef, useState } from "react";
 import Markdown from "react-markdown";
-import { useAgentChatMutation } from "../api/agentApi";
+import { useAgentStream } from "../hooks/useAgentStream";
+import { useChatStore, type ChatMessage } from "../store/useChatStore";
+import type { ToolCallEvent } from "../types/sseEvents";
 
 // ============================================================================
 // Constants
 // ============================================================================
 
-const DEFAULT_TASK_TYPE = "theory";
-const DEFAULT_TASK_INSTRUCTION =
-  "General Q&A with Blip AI learning assistant. Help the user with programming and learning questions.";
-
-// ============================================================================
-// Types
-// ============================================================================
-
-interface Message {
-  role: "user" | "assistant";
-  content: string;
-}
+const DEFAULT_TASK_TYPE = "general";
 
 // ============================================================================
 // Icons
@@ -83,7 +74,7 @@ EmptyState.displayName = "EmptyState";
 // ============================================================================
 
 interface MessageBubbleProps {
-  message: Message;
+  message: ChatMessage;
 }
 
 const MessageBubble = memo(({ message }: MessageBubbleProps) => {
@@ -136,13 +127,52 @@ const TypingIndicator = memo(() => (
 TypingIndicator.displayName = "TypingIndicator";
 
 // ============================================================================
+// Streaming bubble (live partial response)
+// ============================================================================
+
+const StreamingBubble = memo(({ text }: { text: string }) => (
+  <div className="flex justify-start mb-4">
+    <div className="flex-shrink-0 w-8 h-8 rounded-full bg-violet-100 dark:bg-violet-900/30 text-violet-600 dark:text-violet-400 flex items-center justify-center mr-2 mt-1">
+      <BrainIcon />
+    </div>
+    <div className="max-w-[80%] rounded-2xl rounded-bl-sm px-4 py-3 text-sm bg-muted text-foreground">
+      <div className="prose prose-slate dark:prose-invert max-w-none text-sm [&>*:first-child]:mt-0 [&>*:last-child]:mb-0">
+        <Markdown>{text}</Markdown>
+      </div>
+      <span className="inline-block w-0.5 h-4 bg-muted-foreground/60 animate-pulse ml-0.5 align-text-bottom" />
+    </div>
+  </div>
+));
+StreamingBubble.displayName = "StreamingBubble";
+
+// ============================================================================
+// Tool call progress pills
+// ============================================================================
+
+const ToolCallPills = memo(({ calls }: { calls: ToolCallEvent[] }) => (
+  <div className="flex flex-wrap gap-1.5 mb-2 ml-10">
+    {calls.map((c, i) => (
+      <span
+        key={i}
+        className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-violet-100 dark:bg-violet-900/30 text-violet-700 dark:text-violet-300"
+      >
+        <span className="w-1.5 h-1.5 rounded-full bg-violet-400 animate-pulse" />
+        {c.tool}
+      </span>
+    ))}
+  </div>
+));
+ToolCallPills.displayName = "ToolCallPills";
+
+// ============================================================================
 // Main Page
 // ============================================================================
 
 export const AiMentorPage: React.FC = () => {
-  const [messages, setMessages] = useState<Message[]>([]);
+  const messages = useChatStore((s) => s.messages);
+  const addMessage = useChatStore((s) => s.addMessage);
+  const { startStream, isStreaming, partialText, toolCalls } = useAgentStream();
   const [inputValue, setInputValue] = useState("");
-  const [sendChat, { isLoading }] = useAgentChatMutation();
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -153,38 +183,21 @@ export const AiMentorPage: React.FC = () => {
 
   useEffect(() => {
     scrollToBottom();
-  }, [messages, isLoading, scrollToBottom]);
+  }, [messages, isStreaming, partialText, scrollToBottom]);
 
-  const handleSend = useCallback(async () => {
+  const handleSend = useCallback(() => {
     const trimmed = inputValue.trim();
-    if (!trimmed || isLoading) return;
+    if (!trimmed || isStreaming) return;
 
-    const userMessage: Message = { role: "user", content: trimmed };
-    setMessages((prev) => [...prev, userMessage]);
+    addMessage({ role: "user", content: trimmed });
     setInputValue("");
 
-    // Reset textarea height
     if (textareaRef.current) {
       textareaRef.current.style.height = "auto";
     }
 
-    try {
-      const result = await sendChat({
-        userMessage: trimmed,
-        taskType: DEFAULT_TASK_TYPE,
-        taskInstruction: DEFAULT_TASK_INSTRUCTION,
-      }).unwrap();
-
-      const assistantMessage: Message = { role: "assistant", content: result.reply };
-      setMessages((prev) => [...prev, assistantMessage]);
-    } catch {
-      const errorMessage: Message = {
-        role: "assistant",
-        content: "Sorry, I'm having trouble responding right now. Please try again.",
-      };
-      setMessages((prev) => [...prev, errorMessage]);
-    }
-  }, [inputValue, isLoading, sendChat]);
+    void startStream(trimmed, null, DEFAULT_TASK_TYPE);
+  }, [inputValue, isStreaming, addMessage, startStream]);
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -203,6 +216,8 @@ export const AiMentorPage: React.FC = () => {
     e.target.style.height = `${Math.min(e.target.scrollHeight, 160)}px`;
   }, []);
 
+  const isEmpty = messages.length === 0 && !isStreaming;
+
   return (
     <div className="flex flex-col h-full max-h-[calc(100vh-4rem)]">
       {/* Header */}
@@ -220,14 +235,23 @@ export const AiMentorPage: React.FC = () => {
 
       {/* Messages */}
       <div className="flex-1 overflow-y-auto px-6 py-4">
-        {messages.length === 0 && !isLoading ? (
+        {isEmpty ? (
           <EmptyState />
         ) : (
           <>
             {messages.map((msg, index) => (
               <MessageBubble key={index} message={msg} />
             ))}
-            {isLoading && <TypingIndicator />}
+            {isStreaming && (
+              <>
+                {toolCalls.length > 0 && <ToolCallPills calls={toolCalls} />}
+                {partialText ? (
+                  <StreamingBubble text={partialText} />
+                ) : (
+                  <TypingIndicator />
+                )}
+              </>
+            )}
             <div ref={messagesEndRef} />
           </>
         )}
@@ -244,7 +268,7 @@ export const AiMentorPage: React.FC = () => {
               onKeyDown={handleKeyDown}
               placeholder="Ask Blip anything... (Enter to send, Shift+Enter for newline)"
               rows={1}
-              disabled={isLoading}
+              disabled={isStreaming}
               className="
                 w-full resize-none rounded-xl border border-input bg-background px-4 py-3 text-sm
                 placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring
@@ -256,7 +280,7 @@ export const AiMentorPage: React.FC = () => {
           <button
             type="button"
             onClick={handleSend}
-            disabled={isLoading || !inputValue.trim()}
+            disabled={isStreaming || !inputValue.trim()}
             aria-label="Send message"
             className="
               flex-shrink-0 flex items-center justify-center w-11 h-11 rounded-xl
@@ -265,7 +289,7 @@ export const AiMentorPage: React.FC = () => {
               disabled:opacity-40 disabled:cursor-not-allowed
             "
           >
-            {isLoading ? <SpinnerIcon /> : <SendIcon />}
+            {isStreaming ? <SpinnerIcon /> : <SendIcon />}
           </button>
         </div>
         <p className="mt-2 text-xs text-muted-foreground text-center">

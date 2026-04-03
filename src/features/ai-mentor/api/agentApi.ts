@@ -9,8 +9,17 @@ export interface AgentChatRequest {
   taskId?: string | null;
 }
 
+export interface CodeVerificationResult {
+  method: "unit_tests" | "llm_judge";
+  passed: boolean | null;
+  feedback: string;
+  testCode: string | null;
+  executionCommand: string | null;
+}
+
 export interface AgentChatResponse {
   reply: string;
+  verification: CodeVerificationResult | null;
 }
 
 export const agentApi = apiSlice.injectEndpoints({

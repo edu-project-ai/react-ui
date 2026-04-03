@@ -2,8 +2,7 @@ import { memo, useCallback, useEffect, useRef, useState } from 'react';
 import { X, Send, Loader2, Bot, Trash2 } from 'lucide-react';
 import Markdown from 'react-markdown';
 import { useIdeStore } from '../store/useIdeStore';
-import { useAgentChatMutation } from '@/features/ai-mentor/api/agentApi';
-import * as monaco from 'monaco-editor';
+import { startAgentStream } from '@/features/ai-mentor/api/agentStreamApi';
 
 interface BlipHelperPanelProps {
   taskDescription: string;
@@ -59,7 +58,7 @@ const ChatMessage = memo(({ role, content }: { role: 'user' | 'assistant'; conte
 });
 ChatMessage.displayName = 'ChatMessage';
 
-export function BlipHelperPanel({ taskDescription, language, taskId }: BlipHelperPanelProps) {
+export function BlipHelperPanel({ taskId }: BlipHelperPanelProps) {
   const visible = useIdeStore((s) => s.blipPanelVisible);
   const messages = useIdeStore((s) => s.blipMessages);
   const loading = useIdeStore((s) => s.blipLoading);
@@ -67,27 +66,23 @@ export function BlipHelperPanel({ taskDescription, language, taskId }: BlipHelpe
   const addMessage = useIdeStore((s) => s.addBlipMessage);
   const setLoading = useIdeStore((s) => s.setBlipLoading);
   const clearMessages = useIdeStore((s) => s.clearBlipMessages);
-  const activeFilePath = useIdeStore((s) => s.activeFilePath);
 
-  const [agentChat] = useAgentChatMutation();
   const [inputValue, setInputValue] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const abortRef = useRef<AbortController | null>(null);
 
   // Auto-scroll on new messages
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, loading]);
 
-  /** Get current code from Monaco editor */
-  const readCurrentCode = useCallback((): string => {
-    if (!activeFilePath) return '';
-    const uri = monaco.Uri.parse(`file:///${activeFilePath}`);
-    const model = monaco.editor.getModel(uri);
-    return model ? model.getValue() : '';
-  }, [activeFilePath]);
+  // Cancel any in-flight stream on unmount
+  useEffect(() => {
+    return () => { abortRef.current?.abort(); };
+  }, []);
 
-  const handleSend = useCallback(async () => {
+  const handleSend = useCallback(() => {
     const trimmed = inputValue.trim();
     if (!trimmed || loading) return;
 
@@ -95,27 +90,32 @@ export function BlipHelperPanel({ taskDescription, language, taskId }: BlipHelpe
     setInputValue('');
     if (textareaRef.current) textareaRef.current.style.height = 'auto';
 
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
+
     setLoading(true);
-    try {
-      const currentCode = readCurrentCode();
-      const result = await agentChat({
-        userMessage: trimmed,
-        taskType: 'code',
-        taskInstruction: taskDescription,
-        currentCode: currentCode || null,
-        language,
-        taskId: taskId ?? null,
-      }).unwrap();
-      addMessage({ role: 'assistant', content: result.reply });
-    } catch {
-      addMessage({
-        role: 'assistant',
-        content: 'Sorry, something went wrong. Please try again.',
-      });
-    } finally {
-      setLoading(false);
-    }
-  }, [inputValue, loading, addMessage, setLoading, readCurrentCode, agentChat, taskDescription, language, taskId]);
+
+    void startAgentStream(
+      { message: trimmed, taskId: taskId ?? null, taskType: 'code_review' },
+      {
+        onToken() {},
+        onToolCall() {},
+        onToolResult() {},
+        onDone(event) {
+          addMessage({ role: 'assistant', content: event.reply });
+          setLoading(false);
+        },
+        onError(err) {
+          if (err.name !== 'AbortError') {
+            addMessage({ role: 'assistant', content: 'Sorry, something went wrong. Please try again.' });
+          }
+          setLoading(false);
+        },
+      },
+      controller.signal,
+    );
+  }, [inputValue, loading, addMessage, setLoading, taskId]);
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
