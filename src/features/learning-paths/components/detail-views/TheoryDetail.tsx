@@ -126,7 +126,7 @@ export const TheoryDetail = memo(({ item }: TheoryDetailProps) => {
             <div className="p-6 overflow-y-auto h-full">
               <div className="prose prose-slate dark:prose-invert max-w-none">
                 <Markdown>
-                  {theoryResource.content ?? "*No content available*"}
+                  {theoryResource.content}
                 </Markdown>
               </div>
             </div>

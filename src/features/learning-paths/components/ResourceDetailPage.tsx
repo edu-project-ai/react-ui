@@ -1,5 +1,11 @@
+import { useState, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useGetResourceByIdQuery } from "../api/learningPathsApi";
+import { getAuthToken } from "@/lib/token-provider";
+
+const PYTHON_API_URL = import.meta.env.VITE_PYTHON_API_URL as string;
+
+type IngestStatus = "idle" | "loading" | "success" | "error";
 
 const TYPE_LABELS: Record<string, string> = {
   article: "Article",
@@ -21,6 +27,28 @@ export const ResourceDetailPage = () => {
     resourceId!,
     { skip: !resourceId }
   );
+
+  const [ingestStatus, setIngestStatus] = useState<IngestStatus>("idle");
+
+  const handleIngest = useCallback(async () => {
+    if (!resource?.url) return;
+    setIngestStatus("loading");
+    try {
+      const token = await getAuthToken();
+      const res = await fetch(`${PYTHON_API_URL}/api/rag/ingest`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({ url: resource.url }),
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      setIngestStatus("success");
+    } catch {
+      setIngestStatus("error");
+    }
+  }, [resource?.url]);
 
   if (isLoading) {
     return (
@@ -100,17 +128,56 @@ export const ResourceDetailPage = () => {
 
           {/* URL */}
           {resource.url ? (
-            <a
-              href={resource.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 px-4 py-2.5 mb-6 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors"
-            >
-              <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-              </svg>
-              Open resource
-            </a>
+            <div className="flex items-center flex-wrap gap-3 mb-6">
+              <a
+                href={resource.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 px-4 py-2.5 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors"
+              >
+                <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                </svg>
+                Open resource
+              </a>
+              <button
+                type="button"
+                onClick={handleIngest}
+                disabled={ingestStatus === "loading" || ingestStatus === "success"}
+                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium border border-emerald-500 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                {ingestStatus === "loading" ? (
+                  <>
+                    <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                    </svg>
+                    Scraping...
+                  </>
+                ) : ingestStatus === "success" ? (
+                  <>
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                    Added to RAG
+                  </>
+                ) : ingestStatus === "error" ? (
+                  <>
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                    Retry
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                    </svg>
+                    Add to RAG
+                  </>
+                )}
+              </button>
+            </div>
           ) : (
             <div className="inline-flex items-center gap-2 px-4 py-2.5 mb-6 bg-muted text-muted-foreground rounded-lg text-sm">
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
